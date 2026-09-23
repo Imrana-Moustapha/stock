@@ -3,7 +3,8 @@
 *.d
 
 # Exécutable du projet (désormais généré dans bin/)
-bin/
+bin/*
+!bin/.gitkeep
 mon_programme
 
 # Fichiers temporaires d'éditeurs
