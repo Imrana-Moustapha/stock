@@ -1,8 +1,11 @@
 CXX = g++
-CXXFLAGS = -Iinclude -Wall -std=c++23 -MMD -MP
-SRC = $(wildcard src/*.cpp) $(wildcard src/*/*.cpp)
+CXXFLAGS = -Iinclude -Iexceptions -Imodels -Iobservers -Irepositories -Iservices -Wall -std=c++23 -MMD -MP
+
+# Fichiers sources basés sur ton arborescence réelle
+SRC = main.cpp $(wildcard menu/*.cpp) $(wildcard utils/*.cpp)
 OBJ = $(SRC:.cpp=.o)
 DEP = $(OBJ:.o=.d)
+
 BIN_DIR = bin
 TARGET = $(BIN_DIR)/mon_programme
 
@@ -26,5 +29,5 @@ $(BIN_DIR):
 -include $(DEP)
 
 clean:
-	rm -f src/*.o src/*/*.o src/*.d src/*/*.d
+	rm -f *.o menu/*.o utils/*.o *.d menu/*.d utils/*.d
 	rm -f $(TARGET)

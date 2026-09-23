@@ -1,18 +1,19 @@
-#include "../../include/header.hpp"
+#include "../include/header.hpp"
 
 using namespace Couleur;
 
-void sous_menu_commandes() {
+void sous_menu_produits() {
     int choixSousMenu = 0;
     do {
         clear();
         std::cout << "\n\n";
         std::cout << JAUNE << "\t\t=======================================================\n" << RESET;
-        std::cout << CYAN  << "\t\t||              " << GRAS << "COMMANDES & FOURNISSEURS" << RESET << CYAN << "             ||\n" << RESET;
+        std::cout << CYAN  << "\t\t||              " << GRAS << "GESTION DES PRODUITS" << RESET << CYAN << "                 ||\n" << RESET;
         std::cout << JAUNE << "\t\t=======================================================\n" << RESET;
-        std::cout << BLANC << "\t\t||  1. Lister les fournisseurs                       ||\n";
-        std::cout << "\t\t||  2. Generer une proposition de reapprovisionnement||\n";
-        std::cout << "\t\t||  3. Suivre le statut des commandes en cours       ||\n";
+        std::cout << BLANC << "\t\t||  1. Lister tous les produits                      ||\n";
+        std::cout << "\t\t||  2. Ajouter un produit (Standard, Perissable, etc.)||\n";
+        std::cout << "\t\t||  3. Modifier un produit                           ||\n";
+        std::cout << "\t\t||  4. Supprimer un produit                          ||\n";
         std::cout << "\t\t||  0. Retour au menu principal                      ||" << RESET << "\n";
         std::cout << JAUNE << "\t\t=======================================================\n" << RESET;
         std::cout << "\t\t   Votre choix : " << VERT;
@@ -23,6 +24,7 @@ void sous_menu_commandes() {
             case 1: break;
             case 2: break;
             case 3: break;
+            case 4: break;
             case 0: break;
             default: 
                 std::cout << "\n\t\t" << ROUGE << "[!] Choix invalide." << RESET << "\n";

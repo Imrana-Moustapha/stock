@@ -15,32 +15,43 @@ Ce projet sert de support pour la mise en pratique d'une architecture orientée 
 
 ## Structure du projet
 
+
 ```
+
 .
-├── bin/                      # Exécutable généré (non versionné)
+├── bin/                     # Exécutable généré (non versionné)
+├── exceptions/
+│   └── Exceptions.hpp       # Gestion centralisée des exceptions
 ├── include/
-│   ├── header.hpp          # Déclarations communes (menus, utilitaires, couleurs)
-│   └── models/              # Classes du modèle de domaine
-│       ├── Produit.hpp
-│       ├── Fournisseur.hpp
-│       ├── Commande.hpp
-│       ├── MouvementStock.hpp
-│       └── Utilisateur.hpp
-├── src/
-│   ├── main.cpp
-│   ├── menu.cpp
-│   ├── sub-menu/            # Sous-menus de l'application
-│   │   ├── produits.cpp
-│   │   ├── mouvements.cpp
-│   │   ├── recherche.cpp
-│   │   ├── commandes.cpp
-│   │   ├── statistiques.cpp
-│   │   └── administration.cpp
-│   └── utils/
-│       └── utils.cpp
+│   └── header.hpp           # Déclarations communes (menus, utilitaires, couleurs)
+├── models/                  # Classes du modèle de domaine
+│   ├── Commande.hpp
+│   ├── Fournisseur.hpp
+│   ├── MouvementStock.hpp
+│   ├── Produit.hpp
+│   └── Utilisateur.hpp
+├── observers/
+│   └── IObservateurStock.hpp # Interface pour le pattern Observer
+├── repositories/
+│   ├── FichierTexteRepository.hpp
+│   └── IRepository.hpp      # Interfaces et implémentations de persistance
+├── services/
+│   └── Gestionnairestock.hpp # Logique métier principale
+├── menu/                    # Fichiers sources des menus et sous-menus
+│   ├── administration.cpp
+│   ├── commandes.cpp
+│   ├── menu-principal.cpp
+│   ├── mouvements.cpp
+│   ├── produits.cpp
+│   ├── recherche.cpp
+│   └── statistiques.cpp
+├── utils/
+│   └── utils.cpp            # Fonctions utilitaires
+├── main.cpp                 # Point d'entrée de l'application
 ├── .gitignore
 ├── Makefile
 └── README.md
+
 ```
 
 ## Prérequis
@@ -52,6 +63,7 @@ Ce projet sert de support pour la mise en pratique d'une architecture orientée 
 
 ```bash
 make
+
 ```
 
 Compile le projet (si nécessaire) dans `bin/mon_programme`, puis lance l'exécutable automatiquement.
@@ -59,7 +71,7 @@ Compile le projet (si nécessaire) dans `bin/mon_programme`, puis lance l'exécu
 Cibles disponibles :
 
 | Commande | Effet |
-|---|---|
+| --- | --- |
 | `make` ou `make all` | Compile si besoin, puis lance le programme |
 | `make build` | Compile seulement, sans lancer le programme |
 | `make run` | Identique à `make` : compile si besoin puis lance |
@@ -71,6 +83,7 @@ Pour lancer l'exécutable manuellement sans passer par `make run` :
 
 ```bash
 ./bin/mon_programme
+
 ```
 
 ## Architecture logicielle
@@ -78,24 +91,25 @@ Pour lancer l'exécutable manuellement sans passer par `make run` :
 Le projet est organisé en couches aux responsabilités distinctes :
 
 | Couche | Rôle |
-|---|---|
-| Modèle (`include/models/`) | Classes de données métier (`Produit`, `Commande`, `Fournisseur`, `MouvementStock`, `Utilisateur`) |
-| Logique / Service | Règles métier : seuils, calculs de valeur, validations (à venir) |
-| Persistance | Interface abstraite pour la sauvegarde/chargement des données (à venir) |
-| Interface (CLI) | Menu console (`menu.cpp`, `src/sub-menu/`) |
+| --- | --- |
+| Modèle (`models/`) | Classes de données métier (`Produit`, `Commande`, `Fournisseur`, `MouvementStock`, `Utilisateur`) |
+| Logique / Service (`services/`) | Règles métier : seuils, calculs de valeur, validations |
+| Persistance (`repositories/`) | Interface abstraite pour la sauvegarde/chargement des données |
+| Interface (CLI) (`menu/`) | Menu console et sous-menus |
 
 ### Design patterns
 
-- **Factory** — création polymorphe des produits selon leur type
-- **Observer** — notification automatique lors du franchissement d'un seuil de stock
-- **Strategy** — politiques de tarification interchangeables
+* **Factory** — création polymorphe des produits selon leur type
+* **Observer** — notification automatique lors du franchissement d'un seuil de stock
+* **Strategy** — politiques de tarification interchangeables
 
 ## Dépôt
 
 ```bash
-git clone https://github.com/Imrana-Moustapha/stock.git
+git clone [https://github.com/Imrana-Moustapha/stock.git](https://github.com/Imrana-Moustapha/stock.git)
 cd stock
 git checkout develop
+
 ```
 
 La branche par défaut du dépôt est **`develop`** : c'est elle que vous récupérez automatiquement après un `git clone`, et c'est sur elle que doit partir tout nouveau travail.
@@ -105,45 +119,57 @@ La branche par défaut du dépôt est **`develop`** : c'est elle que vous récup
 Le projet suit un modèle à deux branches principales :
 
 | Branche | Rôle |
-|---|---|
+| --- | --- |
 | `main` | Code stable, prêt à être livré. On n'y pousse jamais directement. |
 | `develop` | Branche d'intégration, par défaut. Toutes les fonctionnalités y sont fusionnées avant de partir vers `main`. |
 
 ### Ajouter une fonctionnalité ou corriger un bug
 
 1. Partir toujours de `develop` à jour :
-   ```bash
-   git checkout develop
-   git pull origin develop
-   ```
+```bash
+git checkout develop
+git pull origin develop
+
+```
+
+
 2. Créer une branche dédiée, nommée selon ce qu'elle contient :
-   ```bash
-   git checkout -b feature/nom-de-la-fonctionnalite
-   # ou : git checkout -b fix/nom-du-bug
-   ```
+```bash
+git checkout -b feature/nom-de-la-fonctionnalite
+# ou : git checkout -b fix/nom-du-bug
+
+```
+
+
 3. Committer par petites étapes, avec des messages clairs :
-   ```bash
-   git add .
-   git commit -m "Ajoute la validation de saisie du menu produits"
-   ```
+```bash
+git add .
+git commit -m "Ajoute la validation de saisie du menu produits"
+
+```
+
+
 4. Pousser la branche et ouvrir une Pull Request vers `develop` (jamais directement vers `main`) :
-   ```bash
-   git push -u origin feature/nom-de-la-fonctionnalite
-   ```
+```bash
+git push -u origin feature/nom-de-la-fonctionnalite
+
+```
+
+
 5. Une fois la Pull Request relue et validée, elle est fusionnée dans `develop`. `main` n'est mis à jour que lors d'une livraison stable, via une Pull Request `develop` → `main`.
 
 ### Conventions de nommage des branches
 
-- `feature/xxx` — nouvelle fonctionnalité
-- `fix/xxx` — correction de bug
-- `refactor/xxx` — refactorisation sans changement de comportement
-- `docs/xxx` — documentation uniquement
+* `feature/xxx` — nouvelle fonctionnalité
+* `fix/xxx` — correction de bug
+* `refactor/xxx` — refactorisation sans changement de comportement
+* `docs/xxx` — documentation uniquement
 
 ### Avant de committer
 
-- Vérifier que le projet compile sans avertissement : `make clean && make build`
-- Ne jamais committer les fichiers générés (`*.o`, `*.d`, le dossier `bin/`) — déjà exclus par `.gitignore`
+* Vérifier que le projet compile sans avertissement : `make clean && make build`
+* Ne jamais committer les fichiers générés (`*.o`, `*.d`, le dossier `bin/`) — déjà exclus par `.gitignore`
 
-
+---
 
 En développement actif. Le squelette de l'architecture (modèle, menus, Makefile) est en place ; la logique métier et la persistance sont en cours d'implémentation.

@@ -1,18 +1,18 @@
-#include "../../include/header.hpp"
+#include "../include/header.hpp"
 
 using namespace Couleur;
 
-void sous_menu_statistiques() {
+void sous_menu_commandes() {
     int choixSousMenu = 0;
     do {
         clear();
         std::cout << "\n\n";
         std::cout << JAUNE << "\t\t=======================================================\n" << RESET;
-        std::cout << CYAN  << "\t\t||         " << GRAS << "STATISTIQUES & TABLEAUX DE BORD" << RESET << CYAN << "           ||\n" << RESET;
+        std::cout << CYAN  << "\t\t||              " << GRAS << "COMMANDES & FOURNISSEURS" << RESET << CYAN << "             ||\n" << RESET;
         std::cout << JAUNE << "\t\t=======================================================\n" << RESET;
-        std::cout << BLANC << "\t\t||  1. Valeur totale du stock (globale / categorie)  ||\n";
-        std::cout << "\t\t||  2. Consulter les produits les plus mouvementes   ||\n";
-        std::cout << "\t\t||  3. Detecter les produits dormants (surstock)     ||\n";
+        std::cout << BLANC << "\t\t||  1. Lister les fournisseurs                       ||\n";
+        std::cout << "\t\t||  2. Generer une proposition de reapprovisionnement||\n";
+        std::cout << "\t\t||  3. Suivre le statut des commandes en cours       ||\n";
         std::cout << "\t\t||  0. Retour au menu principal                      ||" << RESET << "\n";
         std::cout << JAUNE << "\t\t=======================================================\n" << RESET;
         std::cout << "\t\t   Votre choix : " << VERT;
