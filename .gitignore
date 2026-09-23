@@ -1,0 +1,14 @@
+# Fichiers objets et dépendances générés par la compilation
+*.o
+*.d
+
+# Exécutable du projet (désormais généré dans bin/)
+bin/
+mon_programme
+
+# Fichiers temporaires d'éditeurs
+*.swp
+*~
+
+# Dossiers de build éventuels
+build/

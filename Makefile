@@ -3,16 +3,28 @@ CXXFLAGS = -Iinclude -Wall -std=c++23 -MMD -MP
 SRC = $(wildcard src/*.cpp) $(wildcard src/*/*.cpp)
 OBJ = $(SRC:.cpp=.o)
 DEP = $(OBJ:.o=.d)
-TARGET = mon_programme
+BIN_DIR = bin
+TARGET = $(BIN_DIR)/mon_programme
 
-.PHONY: all clean
+.PHONY: all build run clean
 
-all: $(TARGET)
+# "make" tout court compile (si besoin) puis lance l'exécutable
+all: run
 
-$(TARGET): $(OBJ)
+# Compile sans lancer le programme
+build: $(TARGET)
+
+run: $(TARGET)
+	./$(TARGET)
+
+$(TARGET): $(OBJ) | $(BIN_DIR)
 	$(CXX) $(OBJ) -o $(TARGET)
+
+$(BIN_DIR):
+	mkdir -p $(BIN_DIR)
 
 -include $(DEP)
 
 clean:
-	rm -f src/*.o src/*/*.o src/*.d src/*/*.d $(TARGET)
+	rm -f src/*.o src/*/*.o src/*.d src/*/*.d
+	rm -f $(TARGET)
