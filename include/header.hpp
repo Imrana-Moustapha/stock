@@ -4,6 +4,11 @@
 #include <limits>
 #include <string_view>
 
+// Déclaration anticipée : header.hpp n'a besoin que d'une référence,
+// pas de la définition complète de la classe (évite un couplage inutile
+// et accélère la compilation des fichiers qui n'utilisent pas GestionnaireStock).
+class GestionnaireStock;
+
 // Codes de couleur ANSI regroupés dans un namespace typé plutôt qu'en macros #define :
 // évite les collisions de noms globaux et bénéficie du typage std::string_view.
 namespace Couleur
@@ -26,8 +31,8 @@ void clear();
 // dupliqué dans chaque sous-menu.
 bool lireChoix(int& choix);
 
-void menu_principal();
-void sous_menu_produits();
+void menu_principal(GestionnaireStock& gestionnaire);
+void sous_menu_produits(GestionnaireStock& gestionnaire);
 void sous_menu_mouvements();
 void sous_menu_recherche();
 void sous_menu_commandes();

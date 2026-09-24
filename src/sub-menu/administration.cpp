@@ -1,19 +1,19 @@
-#include "../include/header.hpp"
+#include "../../include/header.hpp"
 
 using namespace Couleur;
 
-void sous_menu_produits() {
+void sous_menu_administration() {
     int choixSousMenu = 0;
     do {
         clear();
         std::cout << "\n\n";
         std::cout << JAUNE << "\t\t=======================================================\n" << RESET;
-        std::cout << CYAN  << "\t\t||              " << GRAS << "GESTION DES PRODUITS" << RESET << CYAN << "                 ||\n" << RESET;
+        std::cout << CYAN  << "\t\t||         " << GRAS << "ADMINISTRATION & CONFIGURATION" << RESET << CYAN << "          ||\n" << RESET;
         std::cout << JAUNE << "\t\t=======================================================\n" << RESET;
-        std::cout << BLANC << "\t\t||  1. Lister tous les produits                      ||\n";
-        std::cout << "\t\t||  2. Ajouter un produit (Standard, Perissable, etc.)||\n";
-        std::cout << "\t\t||  3. Modifier un produit                           ||\n";
-        std::cout << "\t\t||  4. Supprimer un produit                          ||\n";
+        std::cout << BLANC << "\t\t||  1. Import massif de produits (CSV)               ||\n";
+        std::cout << "\t\t||  2. Export des donnees (Catalogue / Historique)   ||\n";
+        std::cout << "\t\t||  3. Configurer les seuils d'alerte                ||\n";
+        std::cout << "\t\t||  4. Gestion des utilisateurs                      ||\n";
         std::cout << "\t\t||  0. Retour au menu principal                      ||" << RESET << "\n";
         std::cout << JAUNE << "\t\t=======================================================\n" << RESET;
         std::cout << "\t\t   Votre choix : " << VERT;

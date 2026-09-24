@@ -1,0 +1,9 @@
+services:
+  stock:
+    build: .
+    container_name: gestion_stock
+    # Nécessaire pour une application console interactive
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./data:/app/data

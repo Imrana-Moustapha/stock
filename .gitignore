@@ -7,6 +7,10 @@ bin/*
 !bin/.gitkeep
 mon_programme
 
+# Données de persistance générées au runtime
+data/*
+!data/.gitkeep
+
 # Fichiers temporaires d'éditeurs
 *.swp
 *~

@@ -1,19 +1,19 @@
-#include "../include/header.hpp"
+#include "../../include/header.hpp"
 
 using namespace Couleur;
 
-void sous_menu_recherche() {
+void sous_menu_mouvements() {
     int choixSousMenu = 0;
     do {
         clear();
         std::cout << "\n\n";
         std::cout << JAUNE << "\t\t=======================================================\n" << RESET;
-        std::cout << CYAN  << "\t\t||              " << GRAS << "RECHERCHE ET FILTRES" << RESET << CYAN << "                 ||\n" << RESET;
+        std::cout << CYAN  << "\t\t||           " << GRAS << "MOUVEMENTS DE STOCK & AUDIT" << RESET << CYAN << "             ||\n" << RESET;
         std::cout << JAUNE << "\t\t=======================================================\n" << RESET;
-        std::cout << BLANC << "\t\t||  1. Rechercher par nom ou reference               ||\n";
-        std::cout << "\t\t||  2. Filtrer par categorie                         ||\n";
-        std::cout << "\t\t||  3. Filtrer perissables proches de peremption     ||\n";
-        std::cout << "\t\t||  4. Afficher les produits sous le seuil critique  ||\n";
+        std::cout << BLANC << "\t\t||  1. Enregistrer une entree en stock               ||\n";
+        std::cout << "\t\t||  2. Enregistrer une sortie de stock               ||\n";
+        std::cout << "\t\t||  3. Ajustement de stock                           ||\n";
+        std::cout << "\t\t||  4. Consulter le journal des transactions (Audit) ||\n";
         std::cout << "\t\t||  0. Retour au menu principal                      ||" << RESET << "\n";
         std::cout << JAUNE << "\t\t=======================================================\n" << RESET;
         std::cout << "\t\t   Votre choix : " << VERT;

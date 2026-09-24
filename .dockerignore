@@ -1,0 +1,10 @@
+bin/
+data/
+*.o
+*.d
+
+.git/
+.gitignore
+
+README.md
+Projet_Gestion_Stock_CPP.docx

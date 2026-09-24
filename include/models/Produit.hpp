@@ -35,6 +35,11 @@ class Produit
 
         // Setters
         void setQuantiteStock(int qte) { quantiteStock = qte; }
+        void setNom(std::string n) { nom = std::move(n); }
+        void setCategorie(std::string cat) { categorie = std::move(cat); }
+        void setPrixAchat(double pA) { prixAchat = pA; }
+        void setPrixVente(double pV) { prixVente = pV; }
+        void setSeuilAlerte(int seuil) { seuilAlerte = seuil; }
 
         bool estSousLeSeuil() const { return quantiteStock <= seuilAlerte; }
 
@@ -57,6 +62,7 @@ class ProduitPerissable : public Produit
               datePeremption(dateP) {}
 
         const std::chrono::year_month_day& getDatePeremption() const { return datePeremption; }
+        void setDatePeremption(std::chrono::year_month_day dateP) { datePeremption = dateP; }
 
         // Nombre de jours restants avant péremption par rapport à une date donnée
         // (aujourd'hui par défaut). Un chrono::year_month_day se compare et se soustrait

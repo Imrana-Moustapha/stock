@@ -11,6 +11,7 @@
 #include "models/Produit.hpp"
 #include "repositories/IRepository.hpp"
 #include "exceptions/Exceptions.hpp"
+#include "factories/ProduitFactory.hpp"
 
 // Persistance des produits dans un fichier texte, une ligne par produit,
 // champs séparés par ';'. Format :
@@ -103,26 +104,32 @@ class FichierTexteRepository : public IRepository
                 if (ligne.empty()) continue;
 
                 std::vector<std::string> champs = decouper(ligne);
-                const std::string& type = champs.at(0);
+                const std::string& typeTexte = champs.at(0);
 
-                if (type == "STANDARD" && champs.size() == 8)
-                {
-                    produits.push_back(std::make_unique<Produit>(
-                        champs[1], champs[2], champs[3],
-                        std::stod(champs[4]), std::stod(champs[5]),
-                        std::stoi(champs[6]), std::stoi(champs[7])));
-                }
-                else if (type == "PERISSABLE" && champs.size() == 9)
-                {
-                    produits.push_back(std::make_unique<ProduitPerissable>(
-                        champs[1], champs[2], champs[3],
-                        std::stod(champs[4]), std::stod(champs[5]),
-                        std::stoi(champs[6]), std::stoi(champs[7]),
-                        parserDate(champs[8])));
-                }
-                else
-                {
-                    throw FormatFichierInvalideException("ligne mal formée : " + ligne);
+                try {
+                    TypeProduit type = ProduitFactory::typeDepuisTexte(typeTexte);
+
+                    if (type == TypeProduit::STANDARD && champs.size() == 8)
+                    {
+                        produits.push_back(ProduitFactory::creerProduit(
+                            type, champs[1], champs[2], champs[3],
+                            std::stod(champs[4]), std::stod(champs[5]),
+                            std::stoi(champs[6]), std::stoi(champs[7])));
+                    }
+                    else if (type == TypeProduit::PERISSABLE && champs.size() == 9)
+                    {
+                        produits.push_back(ProduitFactory::creerProduit(
+                            type, champs[1], champs[2], champs[3],
+                            std::stod(champs[4]), std::stod(champs[5]),
+                            std::stoi(champs[6]), std::stoi(champs[7]),
+                            parserDate(champs[8])));
+                    }
+                    else
+                    {
+                        throw FormatFichierInvalideException("ligne mal formée : " + ligne);
+                    }
+                } catch (const std::invalid_argument& e) {
+                    throw FormatFichierInvalideException(std::string(e.what()) + " (ligne : " + ligne + ")");
                 }
             }
             return produits;

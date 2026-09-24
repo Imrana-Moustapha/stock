@@ -1,8 +1,9 @@
 #include "../include/header.hpp"
+#include "../include/services/Gestionnairestock.hpp"
 
 using namespace Couleur;
 
-void menu_principal() 
+void menu_principal(GestionnaireStock& gestionnaire) 
 {
     int choixPrincipal = 0;
 
@@ -27,7 +28,7 @@ void menu_principal()
 
         switch (choixPrincipal) {
             case 1:
-                sous_menu_produits();
+                sous_menu_produits(gestionnaire);
                 break;
             case 2:
                 sous_menu_mouvements();
