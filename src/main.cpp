@@ -1,9 +1,10 @@
-#include "../include/header.hpp"
-#include "../include/services/Gestionnairestock.hpp"
+#include "menus/Menus.hpp"
+#include "services/Gestionnairestock.hpp"
 #include "repositories/FichierTexteRepository.hpp"
 #include "observers/Logger.hpp"
 
-int main() {
+int main()
+{
     GestionnaireStock gestionnaire(std::make_unique<FichierTexteRepository>("data/stock.txt"));
     gestionnaire.charger();
 
