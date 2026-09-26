@@ -150,6 +150,17 @@ class GestionnaireStock
             notifierSiSeuilCritique(produit);
         }
 
+        // Applique un même seuil d'alerte à tous les produits existants — utile pour
+        // une action d'administration en masse, distincte de la modification unitaire
+        // disponible dans le menu Produits.
+        void definirSeuilPourTous(int seuil)
+        {
+            if (seuil < 0)
+                throw std::invalid_argument("Le seuil ne peut pas être négatif.");
+            for (auto& p : produits)
+                p->setSeuilAlerte(seuil);
+        }
+
         const std::vector<MouvementStock>& getHistorique() const
         {
             return historique;

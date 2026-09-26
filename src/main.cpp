@@ -1,17 +1,19 @@
 #include "menus/Menus.hpp"
 #include "services/Gestionnairestock.hpp"
+#include "services/GestionnaireCommandes.hpp"
 #include "repositories/FichierTexteRepository.hpp"
 #include "observers/Logger.hpp"
 
-int main()
-{
+int main() {
     GestionnaireStock gestionnaire(std::make_unique<FichierTexteRepository>("data/stock.txt"));
     gestionnaire.charger();
+
+    GestionnaireCommandes gestionnaireCommandes;
 
     Logger logger("data/alertes.log");
     gestionnaire.ajouterObservateur(&logger);
 
-    menu_principal(gestionnaire);
+    menu_principal(gestionnaire, gestionnaireCommandes);
 
     gestionnaire.sauvegarder();
     return 0;

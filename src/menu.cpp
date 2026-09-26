@@ -3,7 +3,7 @@
 
 using namespace Couleur;
 
-void menu_principal(GestionnaireStock& gestionnaire) 
+void menu_principal(GestionnaireStock& gestionnaire, GestionnaireCommandes& gestionnaireCommandes) 
 {
     int choixPrincipal = 0;
 
@@ -37,13 +37,13 @@ void menu_principal(GestionnaireStock& gestionnaire)
                 sous_menu_recherche(gestionnaire);
                 break;
             case 4:
-                sous_menu_commandes();
+                sous_menu_commandes(gestionnaire, gestionnaireCommandes);
                 break;
             case 5:
                 sous_menu_statistiques(gestionnaire);
                 break;
             case 6:
-                sous_menu_administration();
+                sous_menu_administration(gestionnaire);
                 break;
             case 0:
                 clear();
