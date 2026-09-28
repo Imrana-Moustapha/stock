@@ -2,19 +2,19 @@
 
 #include <string>
 #include <fstream>
-#include <sstream>
 #include <vector>
 #include <memory>
-#include <chrono>
-#include <iomanip>
+#include <stdexcept>
 
 #include "models/Produit.hpp"
 #include "repositories/IRepository.hpp"
+#include "repositories/FormatTexte.hpp"
 #include "exceptions/Exceptions.hpp"
 #include "factories/ProduitFactory.hpp"
+#include "utils/DateUtils.hpp"
 
 // Persistance des produits dans un fichier texte, une ligne par produit,
-// champs séparés par ';'. Format :
+// champs séparés par ';' (le ';' et le '\' présents dans les données sont échappés). Format :
 //   STANDARD;reference;nom;categorie;prixAchat;prixVente;quantiteStock;seuilAlerte
 //   PERISSABLE;reference;nom;categorie;prixAchat;prixVente;quantiteStock;seuilAlerte;AAAA-MM-JJ
 class FichierTexteRepository : public IRepository
@@ -23,35 +23,9 @@ class FichierTexteRepository : public IRepository
         std::string cheminFichier;
         static constexpr char DELIMITEUR = ';';
 
-        static std::string formaterDate(const std::chrono::year_month_day& date)
+        static std::string ech(const std::string& texte)
         {
-            std::ostringstream oss;
-            oss << static_cast<int>(date.year()) << "-"
-                << std::setw(2) << std::setfill('0') << static_cast<unsigned>(date.month()) << "-"
-                << std::setw(2) << std::setfill('0') << static_cast<unsigned>(date.day());
-            return oss.str();
-        }
-
-        static std::chrono::year_month_day parserDate(const std::string& texte)
-        {
-            int annee, mois, jour;
-            char separateur1, separateur2;
-            std::istringstream iss(texte);
-            if (!(iss >> annee >> separateur1 >> mois >> separateur2 >> jour) || separateur1 != '-' || separateur2 != '-')
-                throw FormatFichierInvalideException("date invalide : " + texte);
-
-            return std::chrono::year{annee} / std::chrono::month{static_cast<unsigned>(mois)}
-                                             / std::chrono::day{static_cast<unsigned>(jour)};
-        }
-
-        static std::vector<std::string> decouper(const std::string& ligne)
-        {
-            std::vector<std::string> champs;
-            std::stringstream ss(ligne);
-            std::string champ;
-            while (std::getline(ss, champ, DELIMITEUR))
-                champs.push_back(champ);
-            return champs;
+            return FormatTexte::echapper(texte, DELIMITEUR);
         }
 
     public:
@@ -65,29 +39,20 @@ class FichierTexteRepository : public IRepository
 
             for (const auto& p : produits)
             {
-                if (const auto* perissable = dynamic_cast<const ProduitPerissable*>(p.get()))
-                {
-                    fichier << "PERISSABLE" << DELIMITEUR
-                            << perissable->getReference() << DELIMITEUR
-                            << perissable->getNom() << DELIMITEUR
-                            << perissable->getCategorie() << DELIMITEUR
-                            << perissable->getPrixAchat() << DELIMITEUR
-                            << perissable->getPrixVente() << DELIMITEUR
-                            << perissable->getQuantiteStock() << DELIMITEUR
-                            << perissable->getSeuilAlerte() << DELIMITEUR
-                            << formaterDate(perissable->getDatePeremption()) << "\n";
-                }
-                else
-                {
-                    fichier << "STANDARD" << DELIMITEUR
-                            << p->getReference() << DELIMITEUR
-                            << p->getNom() << DELIMITEUR
-                            << p->getCategorie() << DELIMITEUR
-                            << p->getPrixAchat() << DELIMITEUR
-                            << p->getPrixVente() << DELIMITEUR
-                            << p->getQuantiteStock() << DELIMITEUR
-                            << p->getSeuilAlerte() << "\n";
-                }
+                const auto* perissable = dynamic_cast<const ProduitPerissable*>(p.get());
+
+                fichier << (perissable ? "PERISSABLE" : "STANDARD") << DELIMITEUR
+                        << ech(p->getReference()) << DELIMITEUR
+                        << ech(p->getNom()) << DELIMITEUR
+                        << ech(p->getCategorie()) << DELIMITEUR
+                        << p->getPrixAchat() << DELIMITEUR
+                        << p->getPrixVente() << DELIMITEUR
+                        << p->getQuantiteStock() << DELIMITEUR
+                        << p->getSeuilAlerte();
+
+                if (perissable)
+                    fichier << DELIMITEUR << DateUtils::formaterIso(perissable->getDatePeremption());
+                fichier << "\n";
             }
         }
 
@@ -103,33 +68,31 @@ class FichierTexteRepository : public IRepository
             {
                 if (ligne.empty()) continue;
 
-                std::vector<std::string> champs = decouper(ligne);
-                const std::string& typeTexte = champs.at(0);
+                std::vector<std::string> champs = FormatTexte::decouper(ligne, DELIMITEUR);
 
                 try {
-                    TypeProduit type = ProduitFactory::typeDepuisTexte(typeTexte);
+                    TypeProduit type = ProduitFactory::typeDepuisTexte(champs.at(0));
+                    std::optional<std::chrono::year_month_day> date;
 
-                    if (type == TypeProduit::STANDARD && champs.size() == 8)
-                    {
-                        produits.push_back(ProduitFactory::creerProduit(
-                            type, champs[1], champs[2], champs[3],
-                            std::stod(champs[4]), std::stod(champs[5]),
-                            std::stoi(champs[6]), std::stoi(champs[7])));
+                    if (type == TypeProduit::STANDARD && champs.size() == 8) {
+                        // pas de date
+                    } else if (type == TypeProduit::PERISSABLE && champs.size() == 9) {
+                        date = DateUtils::parserIso(champs[8]);
+                        if (!date.has_value())
+                            throw std::invalid_argument("date invalide : " + champs[8]);
+                    } else {
+                        throw std::invalid_argument("nombre de colonnes inattendu");
                     }
-                    else if (type == TypeProduit::PERISSABLE && champs.size() == 9)
-                    {
-                        produits.push_back(ProduitFactory::creerProduit(
-                            type, champs[1], champs[2], champs[3],
-                            std::stod(champs[4]), std::stod(champs[5]),
-                            std::stoi(champs[6]), std::stoi(champs[7]),
-                            parserDate(champs[8])));
-                    }
-                    else
-                    {
-                        throw FormatFichierInvalideException("ligne mal formée : " + ligne);
-                    }
+
+                    produits.push_back(ProduitFactory::creerProduit(
+                        type, champs[1], champs[2], champs[3],
+                        std::stod(champs[4]), std::stod(champs[5]),
+                        std::stoi(champs[6]), std::stoi(champs[7]), date));
+
                 } catch (const std::invalid_argument& e) {
                     throw FormatFichierInvalideException(std::string(e.what()) + " (ligne : " + ligne + ")");
+                } catch (const std::out_of_range& e) {
+                    throw FormatFichierInvalideException("valeur numérique hors limites (ligne : " + ligne + ")");
                 }
             }
             return produits;

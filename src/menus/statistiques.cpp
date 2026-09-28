@@ -1,6 +1,6 @@
 #include "ui/Console.hpp"
 #include "menus/Menus.hpp"
-#include "services/Gestionnairestock.hpp"
+#include "services/GestionnaireStock.hpp"
 #include <algorithm>
 #include <vector>
 #include <utility>

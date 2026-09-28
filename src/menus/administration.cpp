@@ -1,9 +1,11 @@
 #include "ui/Console.hpp"
 #include "menus/Menus.hpp"
 #include <cstdlib>
-#include "services/Gestionnairestock.hpp"
+#include "services/GestionnaireStock.hpp"
 #include "factories/ProduitFactory.hpp"
 #include "models/Utilisateur.hpp"
+#include "utils/Csv.hpp"
+#include "utils/DateUtils.hpp"
 #include <fstream>
 #include <sstream>
 #include <vector>
@@ -47,14 +49,14 @@ void pause()
     std::cin.get();
 }
 
-std::vector<std::string> decouperCsv(const std::string& ligne)
+std::string libelleType(TypeMouvement type)
 {
-    std::vector<std::string> champs;
-    std::stringstream ss(ligne);
-    std::string champ;
-    while (std::getline(ss, champ, ','))
-        champs.push_back(champ);
-    return champs;
+    switch (type) {
+        case TypeMouvement::ENTREE:     return "ENTREE";
+        case TypeMouvement::SORTIE:     return "SORTIE";
+        case TypeMouvement::AJUSTEMENT: return "AJUSTEMENT";
+    }
+    return "?";
 }
 
 std::string formaterDateHeure(const std::chrono::system_clock::time_point& tp)
@@ -102,7 +104,7 @@ void importerProduitsCsv(GestionnaireStock& gestionnaire)
         if (ligne.empty()) continue;
 
         try {
-            auto champs = decouperCsv(ligne);
+            auto champs = Csv::decouper(ligne);
             if (champs.size() < 8)
                 throw std::invalid_argument("nombre de colonnes insuffisant");
             for (int i = 1; i <= 7; ++i)
@@ -114,11 +116,9 @@ void importerProduitsCsv(GestionnaireStock& gestionnaire)
 
             if (type == TypeProduit::PERISSABLE) {
                 if (champs.size() < 9) throw std::invalid_argument("date de péremption manquante");
-                int a, m, j; char s1, s2;
-                std::istringstream iss(champs[8]);
-                if (!(iss >> a >> s1 >> m >> s2 >> j) || s1 != '-' || s2 != '-')
-                    throw std::invalid_argument("date de péremption invalide");
-                date = std::chrono::year{a} / std::chrono::month{static_cast<unsigned>(m)} / std::chrono::day{static_cast<unsigned>(j)};
+                date = DateUtils::parserIso(champs[8]);
+                if (!date.has_value())
+                    throw std::invalid_argument("date de péremption invalide : " + champs[8]);
             }
 
             gestionnaire.ajouterProduit(ProduitFactory::creerProduit(
@@ -154,11 +154,18 @@ void exporterCatalogueCsv(const GestionnaireStock& gestionnaire)
         return;
     }
 
-    fichier << "reference,nom,categorie,prixAchat,prixVente,quantiteStock,seuilAlerte\n";
+    // Même format que l'import : un fichier exporté peut être ré-importé tel quel.
+    fichier << "type,reference,nom,categorie,prixAchat,prixVente,quantite,seuil,datePeremption\n";
     for (const auto& p : gestionnaire.getProduits()) {
-        fichier << p->getReference() << ',' << p->getNom() << ',' << p->getCategorie() << ','
+        const auto* perissable = dynamic_cast<const ProduitPerissable*>(p.get());
+
+        fichier << (perissable ? "PERISSABLE" : "STANDARD") << ','
+                << Csv::echapper(p->getReference()) << ','
+                << Csv::echapper(p->getNom()) << ','
+                << Csv::echapper(p->getCategorie()) << ','
                 << p->getPrixAchat() << ',' << p->getPrixVente() << ','
-                << p->getQuantiteStock() << ',' << p->getSeuilAlerte() << "\n";
+                << p->getQuantiteStock() << ',' << p->getSeuilAlerte() << ','
+                << (perissable ? DateUtils::formaterIso(perissable->getDatePeremption()) : "") << "\n";
     }
 
     std::cout << "\n\t\t" << VERT << "[OK] " << gestionnaire.nombreDeProduits() << " produit(s) exporté(s) vers " << chemin << RESET << "\n";
@@ -178,10 +185,12 @@ void exporterHistoriqueCsv(const GestionnaireStock& gestionnaire)
         return;
     }
 
-    fichier << "id,dateHeure,reference,quantite,auteur\n";
+    fichier << "id,dateHeure,type,reference,quantite,auteur\n";
     for (const auto& mvt : gestionnaire.getHistorique()) {
         fichier << mvt.getId() << ',' << formaterDateHeure(mvt.getDateHeure()) << ','
-                << mvt.getReferenceProduit() << ',' << mvt.getQuantite() << ',' << mvt.getAuteur() << "\n";
+                << libelleType(mvt.getType()) << ','
+                << Csv::echapper(mvt.getReferenceProduit()) << ',' << mvt.getQuantite() << ','
+                << Csv::echapper(mvt.getAuteur()) << "\n";
     }
 
     std::cout << "\n\t\t" << VERT << "[OK] " << gestionnaire.getHistorique().size() << " mouvement(s) exporté(s) vers " << chemin << RESET << "\n";

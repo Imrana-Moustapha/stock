@@ -31,6 +31,19 @@ class ProduitIntrouvableException : public std::exception
         const char* what() const noexcept override { return message.c_str(); }
 };
 
+// Exception levée lorsqu'on tente d'ajouter un produit dont la référence existe déjà.
+class ProduitDejaExistantException : public std::exception
+{
+    private:
+        std::string message;
+
+    public:
+        explicit ProduitDejaExistantException(const std::string& reference)
+            : message("Un produit avec la référence '" + reference + "' existe déjà.") {}
+
+        const char* what() const noexcept override { return message.c_str(); }
+};
+
 // Exception levée lors d'un échec de lecture/écriture d'un fichier de persistance
 // (format inattendu, colonnes manquantes, fichier corrompu...).
 class FormatFichierInvalideException : public std::exception

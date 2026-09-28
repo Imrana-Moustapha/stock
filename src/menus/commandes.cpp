@@ -1,9 +1,10 @@
 #include "ui/Console.hpp"
 #include "menus/Menus.hpp"
 #include <cstdlib>
-#include "services/Gestionnairestock.hpp"
+#include "services/GestionnaireStock.hpp"
 #include "services/GestionnaireCommandes.hpp"
 #include <chrono>
+#include "utils/DateUtils.hpp"
 
 using namespace Couleur;
 
@@ -71,6 +72,20 @@ int lireEntierPositif(const std::string& invite)
     }
 }
 
+// Redemande la date tant qu'elle n'existe pas (mois 13, 31 février, etc.).
+std::chrono::year_month_day lireDate(const std::string& libelle)
+{
+    while (true) {
+        int annee = lireEntier("\t\t" + libelle + " - année (AAAA) : ");
+        int mois  = lireEntier("\t\t" + libelle + " - mois (1-12) : ");
+        int jour  = lireEntier("\t\t" + libelle + " - jour (1-31) : ");
+
+        if (auto date = DateUtils::creer(annee, mois, jour))
+            return *date;
+        std::cout << ROUGE << "[!] Cette date n'existe pas, veuillez la ressaisir." << RESET << "\n";
+    }
+}
+
 void pause()
 {
     std::cout << "\n\t\tAppuyez sur Entrée pour continuer...";
@@ -125,12 +140,7 @@ void creerCommande(GestionnaireCommandes& gc)
     }
 
     int idFournisseur = lireEntier("\t\tId du fournisseur : ");
-    int annee = lireEntier("\t\tDate de commande - année (AAAA) : ");
-    int mois  = lireEntier("\t\tDate de commande - mois (1-12) : ");
-    int jour  = lireEntier("\t\tDate de commande - jour (1-31) : ");
-
-    auto date = std::chrono::year{annee} / std::chrono::month{static_cast<unsigned>(mois)}
-                                          / std::chrono::day{static_cast<unsigned>(jour)};
+    auto date = lireDate("Date de commande");
 
     int idCommande = gc.creerCommande(idFournisseur, date);
     std::cout << "\n\t\t" << VERT << "[OK] Commande créée (id=" << idCommande << "). "

@@ -46,6 +46,8 @@ class GestionnaireCommandes
         {
             if (trouverFournisseur(idFournisseur) == nullptr)
                 throw std::invalid_argument("Fournisseur introuvable (id=" + std::to_string(idFournisseur) + ")");
+            if (!date.ok())
+                throw std::invalid_argument("Date de commande invalide.");
 
             int id = prochainIdCommande++;
             commandes.emplace_back(id, idFournisseur, date, StatutCommande::EN_COURS);

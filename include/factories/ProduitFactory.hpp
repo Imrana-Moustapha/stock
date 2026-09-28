@@ -34,6 +34,17 @@ class ProduitFactory
             int seuilAlerte,
             std::optional<std::chrono::year_month_day> datePeremption = std::nullopt)
         {
+            // Règles communes à toutes les portes d'entrée (menu, import CSV, chargement
+            // de fichier) : elles sont vérifiées ici plutôt que dans chaque appelant.
+            if (reference.empty())
+                throw std::invalid_argument("La référence ne peut pas être vide.");
+            if (nom.empty())
+                throw std::invalid_argument("Le nom ne peut pas être vide.");
+            if (prixAchat < 0 || prixVente < 0)
+                throw std::invalid_argument("Les prix ne peuvent pas être négatifs.");
+            if (quantiteStock < 0 || seuilAlerte < 0)
+                throw std::invalid_argument("La quantité et le seuil ne peuvent pas être négatifs.");
+
             switch (type)
             {
                 case TypeProduit::STANDARD:

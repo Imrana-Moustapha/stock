@@ -5,9 +5,11 @@
 #include <sstream>
 #include <vector>
 #include <chrono>
+#include <stdexcept>
 
 #include "models/MouvementStock.hpp"
 #include "repositories/IMouvementRepository.hpp"
+#include "repositories/FormatTexte.hpp"
 #include "exceptions/Exceptions.hpp"
 
 // Persistance du journal des mouvements dans un fichier texte, une ligne par mouvement :
@@ -39,14 +41,9 @@ class FichierTexteMouvementRepository : public IMouvementRepository
             throw FormatFichierInvalideException("type de mouvement inconnu : " + texte);
         }
 
-        static std::vector<std::string> decouper(const std::string& ligne)
+        static std::string ech(const std::string& texte)
         {
-            std::vector<std::string> champs;
-            std::stringstream ss(ligne);
-            std::string champ;
-            while (std::getline(ss, champ, DELIMITEUR))
-                champs.push_back(champ);
-            return champs;
+            return FormatTexte::echapper(texte, DELIMITEUR);
         }
 
     public:
@@ -64,10 +61,10 @@ class FichierTexteMouvementRepository : public IMouvementRepository
 
                 fichier << mvt.getId() << DELIMITEUR
                         << typeVersTexte(mvt.getType()) << DELIMITEUR
-                        << mvt.getReferenceProduit() << DELIMITEUR
+                        << ech(mvt.getReferenceProduit()) << DELIMITEUR
                         << mvt.getQuantite() << DELIMITEUR
                         << epoch << DELIMITEUR
-                        << mvt.getAuteur() << "\n";
+                        << ech(mvt.getAuteur()) << "\n";
             }
         }
 
@@ -82,15 +79,21 @@ class FichierTexteMouvementRepository : public IMouvementRepository
             while (std::getline(fichier, ligne)) {
                 if (ligne.empty()) continue;
 
-                auto champs = decouper(ligne);
+                auto champs = FormatTexte::decouper(ligne, DELIMITEUR);
                 if (champs.size() != 6)
                     throw FormatFichierInvalideException("ligne mal formée : " + ligne);
 
-                long long epoch = std::stoll(champs[4]);
-                auto dateHeure = std::chrono::system_clock::time_point(std::chrono::seconds(epoch));
+                try {
+                    long long epoch = std::stoll(champs[4]);
+                    auto dateHeure = std::chrono::system_clock::time_point(std::chrono::seconds(epoch));
 
-                historique.emplace_back(std::stoi(champs[0]), champs[2], texteVersType(champs[1]),
-                                         std::stoi(champs[3]), dateHeure, champs[5]);
+                    historique.emplace_back(std::stoi(champs[0]), champs[2], texteVersType(champs[1]),
+                                             std::stoi(champs[3]), dateHeure, champs[5]);
+                } catch (const std::invalid_argument&) {
+                    throw FormatFichierInvalideException("valeur numérique invalide (ligne : " + ligne + ")");
+                } catch (const std::out_of_range&) {
+                    throw FormatFichierInvalideException("valeur numérique hors limites (ligne : " + ligne + ")");
+                }
             }
             return historique;
         }

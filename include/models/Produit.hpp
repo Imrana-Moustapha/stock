@@ -4,6 +4,7 @@
 #include <iostream>
 #include <chrono>
 #include <utility>
+#include <stdexcept>
 
 class Produit
 {
@@ -55,14 +56,30 @@ class ProduitPerissable : public Produit
     private:
         std::chrono::year_month_day datePeremption;
 
+        // Invariant du modèle : un produit périssable ne peut pas exister avec une date
+        // qui n'existe pas (31 février, mois 13...), quelle que soit l'origine de la donnée.
+        static void verifierDate(const std::chrono::year_month_day& date)
+        {
+            if (!date.ok())
+                throw std::invalid_argument("Date de péremption invalide.");
+        }
+
     public:
         ProduitPerissable(std::string ref, std::string n, std::string cat, double pA, double pV, int qte, int seuil,
                            std::chrono::year_month_day dateP)
             : Produit(std::move(ref), std::move(n), std::move(cat), pA, pV, qte, seuil),
-              datePeremption(dateP) {}
+              datePeremption(dateP)
+        {
+            verifierDate(dateP);
+        }
 
         const std::chrono::year_month_day& getDatePeremption() const { return datePeremption; }
-        void setDatePeremption(std::chrono::year_month_day dateP) { datePeremption = dateP; }
+
+        void setDatePeremption(std::chrono::year_month_day dateP)
+        {
+            verifierDate(dateP);
+            datePeremption = dateP;
+        }
 
         // Nombre de jours restants avant péremption par rapport à une date donnée
         // (aujourd'hui par défaut). Un chrono::year_month_day se compare et se soustrait

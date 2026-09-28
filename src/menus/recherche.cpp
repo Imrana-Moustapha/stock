@@ -1,7 +1,7 @@
 #include "ui/Console.hpp"
 #include "menus/Menus.hpp"
 #include <cstdlib>
-#include "services/Gestionnairestock.hpp"
+#include "services/GestionnaireStock.hpp"
 #include <algorithm>
 #include <vector>
 #include <cctype>

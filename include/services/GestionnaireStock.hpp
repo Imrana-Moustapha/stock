@@ -62,7 +62,20 @@ class GestionnaireStock
 
         void charger()
         {
-            produits = repository->charger();
+            auto produitsCharges = repository->charger();
+
+            // Un fichier de données édité à la main ou corrompu peut contenir des références
+            // en double : on le détecte plutôt que de charger un état incohérent.
+            std::vector<std::string> references;
+            references.reserve(produitsCharges.size());
+            for (const auto& p : produitsCharges)
+                references.push_back(p->getReference());
+            std::sort(references.begin(), references.end());
+            auto doublon = std::adjacent_find(references.begin(), references.end());
+            if (doublon != references.end())
+                throw FormatFichierInvalideException("référence en double dans les produits : " + *doublon);
+
+            produits = std::move(produitsCharges);
             historique = repositoryMouvements->charger();
 
             // Reprend la numérotation là où le journal chargé s'était arrêté,
@@ -87,8 +100,16 @@ class GestionnaireStock
 
         // --- Gestion des produits ---
 
+        // L'unicité de la référence est une règle métier : elle est garantie ici, dans le
+        // service, et pas seulement dans le menu — sinon l'import CSV ou un autre appelant
+        // pourrait la contourner.
         void ajouterProduit(std::unique_ptr<Produit> produit)
         {
+            if (produit == nullptr)
+                throw std::invalid_argument("Produit nul.");
+            if (trouverProduit(produit->getReference()) != nullptr)
+                throw ProduitDejaExistantException(produit->getReference());
+
             produits.push_back(std::move(produit));
             sauvegarder();
         }

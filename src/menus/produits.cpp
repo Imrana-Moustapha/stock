@@ -1,9 +1,10 @@
 #include "ui/Console.hpp"
 #include "menus/Menus.hpp"
 #include <cstdlib>
-#include "services/Gestionnairestock.hpp"
+#include "services/GestionnaireStock.hpp"
 #include "exceptions/Exceptions.hpp"
 #include "factories/ProduitFactory.hpp"
+#include "utils/DateUtils.hpp"
 #include <limits>
 
 using namespace Couleur;
@@ -77,6 +78,20 @@ int lireEntierPositif(const std::string& invite)
     }
 }
 
+// Redemande la date tant qu'elle n'existe pas (mois 13, 31 février, etc.).
+std::chrono::year_month_day lireDate(const std::string& libelle)
+{
+    while (true) {
+        int annee = lireEntier("\t\t" + libelle + " - année (AAAA) : ");
+        int mois  = lireEntier("\t\t" + libelle + " - mois (1-12) : ");
+        int jour  = lireEntier("\t\t" + libelle + " - jour (1-31) : ");
+
+        if (auto date = DateUtils::creer(annee, mois, jour))
+            return *date;
+        std::cout << ROUGE << "[!] Cette date n'existe pas, veuillez la ressaisir." << RESET << "\n";
+    }
+}
+
 void pause()
 {
     std::cout << "\n\t\tAppuyez sur Entrée pour continuer...";
@@ -137,12 +152,7 @@ void ajouterProduitInteractif(GestionnaireStock& gestionnaire)
         gestionnaire.ajouterProduit(ProduitFactory::creerProduit(
             TypeProduit::STANDARD, reference, nom, categorie, prixAchat, prixVente, quantite, seuil));
     } else {
-        int annee = lireEntier("\t\tDate de péremption - année (AAAA) : ");
-        int mois  = lireEntier("\t\tDate de péremption - mois (1-12) : ");
-        int jour  = lireEntier("\t\tDate de péremption - jour (1-31) : ");
-
-        auto date = std::chrono::year{annee} / std::chrono::month{static_cast<unsigned>(mois)}
-                                              / std::chrono::day{static_cast<unsigned>(jour)};
+        auto date = lireDate("Date de péremption");
 
         gestionnaire.ajouterProduit(ProduitFactory::creerProduit(
             TypeProduit::PERISSABLE, reference, nom, categorie, prixAchat, prixVente, quantite, seuil, date));
@@ -193,12 +203,7 @@ void modifierProduitInteractif(GestionnaireStock& gestionnaire)
             case 5: produit->setSeuilAlerte(lireEntierPositif("\t\tNouveau seuil d'alerte : ")); break;
             case 6:
                 if (perissable != nullptr) {
-                    int annee = lireEntier("\t\tNouvelle date - année (AAAA) : ");
-                    int mois  = lireEntier("\t\tNouvelle date - mois (1-12) : ");
-                    int jour  = lireEntier("\t\tNouvelle date - jour (1-31) : ");
-                    perissable->setDatePeremption(
-                        std::chrono::year{annee} / std::chrono::month{static_cast<unsigned>(mois)}
-                                                  / std::chrono::day{static_cast<unsigned>(jour)});
+                    perissable->setDatePeremption(lireDate("Nouvelle date"));
                 }
                 break;
             case 0: continuer = false; break;
@@ -261,7 +266,7 @@ void sous_menu_produits(GestionnaireStock& gestionnaire) {
 
         try {
             switch (choixSousMenu) {
-                case 1: afficherListeProduits(gestionnaire);break;
+                case 1: afficherListeProduits(gestionnaire); break;
                 case 2: ajouterProduitInteractif(gestionnaire); break;
                 case 3: modifierProduitInteractif(gestionnaire); break;
                 case 4: supprimerProduitInteractif(gestionnaire); break;
