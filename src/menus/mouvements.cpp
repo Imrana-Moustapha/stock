@@ -1,6 +1,7 @@
 #include "ui/Console.hpp"
+#include "ui/Saisie.hpp"
+#include "utils/DateUtils.hpp"
 #include "menus/Menus.hpp"
-#include <cstdlib>
 #include "services/GestionnaireStock.hpp"
 #include "exceptions/Exceptions.hpp"
 #include <chrono>
@@ -11,63 +12,6 @@ using namespace Couleur;
 
 namespace {
 
-std::string lireTexte(const std::string& invite)
-{
-    std::string valeur;
-    do {
-        std::cout << invite;
-        std::getline(std::cin, valeur);
-    } while (valeur.empty());
-    return valeur;
-}
-
-int lireEntier(const std::string& invite)
-{
-    int valeur;
-    while (true) {
-        std::cout << invite;
-        if (std::cin >> valeur) break;
-        if (std::cin.eof()) {
-            std::cout << "\n" << ROUGE << "[!] Entrée interrompue. Fermeture de l'application." << RESET << "\n";
-            std::exit(1);
-        }
-        std::cout << ROUGE << "[!] Veuillez entrer un nombre entier valide." << RESET << "\n";
-        viderBuffer();
-    }
-    viderBuffer();
-    return valeur;
-}
-
-void pause()
-{
-    std::cout << "\n\t\tAppuyez sur Entrée pour continuer...";
-    std::cin.get();
-}
-
-std::string formaterDateHeure(const std::chrono::system_clock::time_point& tp)
-{
-    auto tempsC = std::chrono::system_clock::to_time_t(tp);
-    std::tm tmLocal{};
-#if defined(_WIN32)
-    localtime_s(&tmLocal, &tempsC);
-#else
-    localtime_r(&tempsC, &tmLocal);
-#endif
-    std::ostringstream oss;
-    oss << std::put_time(&tmLocal, "%d/%m/%Y %H:%M:%S");
-    return oss.str();
-}
-
-std::string libelleType(TypeMouvement type)
-{
-    switch (type) {
-        case TypeMouvement::ENTREE:     return "ENTREE";
-        case TypeMouvement::SORTIE:     return "SORTIE";
-        case TypeMouvement::AJUSTEMENT: return "AJUSTEMENT";
-    }
-    return "?";
-}
-
 void enregistrerEntree(GestionnaireStock& gestionnaire)
 {
     clear();
@@ -76,7 +20,7 @@ void enregistrerEntree(GestionnaireStock& gestionnaire)
     std::string reference = lireTexte("\t\tRéférence du produit : ");
     if (gestionnaire.trouverProduit(reference) == nullptr) {
         std::cout << "\n\t\t" << ROUGE << "[!] Produit introuvable." << RESET << "\n";
-        pause();
+        attendreEntree();
         return;
     }
 
@@ -85,7 +29,7 @@ void enregistrerEntree(GestionnaireStock& gestionnaire)
 
     gestionnaire.ajouterStock(reference, quantite, auteur);
     std::cout << "\n\t\t" << VERT << "[OK] Entrée enregistrée." << RESET << "\n";
-    pause();
+    attendreEntree();
 }
 
 void enregistrerSortie(GestionnaireStock& gestionnaire)
@@ -96,7 +40,7 @@ void enregistrerSortie(GestionnaireStock& gestionnaire)
     std::string reference = lireTexte("\t\tRéférence du produit : ");
     if (gestionnaire.trouverProduit(reference) == nullptr) {
         std::cout << "\n\t\t" << ROUGE << "[!] Produit introuvable." << RESET << "\n";
-        pause();
+        attendreEntree();
         return;
     }
 
@@ -105,7 +49,7 @@ void enregistrerSortie(GestionnaireStock& gestionnaire)
 
     gestionnaire.retirerStock(reference, quantite, auteur);
     std::cout << "\n\t\t" << VERT << "[OK] Sortie enregistrée." << RESET << "\n";
-    pause();
+    attendreEntree();
 }
 
 void enregistrerAjustement(GestionnaireStock& gestionnaire)
@@ -117,7 +61,7 @@ void enregistrerAjustement(GestionnaireStock& gestionnaire)
     Produit* produit = gestionnaire.trouverProduit(reference);
     if (produit == nullptr) {
         std::cout << "\n\t\t" << ROUGE << "[!] Produit introuvable." << RESET << "\n";
-        pause();
+        attendreEntree();
         return;
     }
 
@@ -127,7 +71,7 @@ void enregistrerAjustement(GestionnaireStock& gestionnaire)
 
     gestionnaire.ajusterStock(reference, nouvelleQuantite, auteur);
     std::cout << "\n\t\t" << VERT << "[OK] Ajustement enregistré." << RESET << "\n";
-    pause();
+    attendreEntree();
 }
 
 void consulterJournal(const GestionnaireStock& gestionnaire)
@@ -140,12 +84,12 @@ void consulterJournal(const GestionnaireStock& gestionnaire)
         std::cout << "\t\t" << JAUNE << "Aucun mouvement enregistré pour le moment." << RESET << "\n";
     } else {
         for (const auto& mvt : historique) {
-            std::cout << "\t\t[" << formaterDateHeure(mvt.getDateHeure()) << "] "
-                      << libelleType(mvt.getType()) << " | Ref: " << mvt.getReferenceProduit()
+            std::cout << "\t\t[" << DateUtils::formaterDateHeure(mvt.getDateHeure()) << "] "
+                      << libelle(mvt.getType()) << " | Ref: " << mvt.getReferenceProduit()
                       << " | Qte: " << mvt.getQuantite() << " | Par: " << mvt.getAuteur() << "\n";
         }
     }
-    pause();
+    attendreEntree();
 }
 
 } // namespace anonyme
@@ -177,14 +121,11 @@ void sous_menu_mouvements(GestionnaireStock& gestionnaire) {
                 case 0: break;
                 default:
                     std::cout << "\n\t\t" << ROUGE << "[!] Choix invalide." << RESET << "\n";
-                    std::cout << "\n\t\tAppuyez sur Entrée pour continuer...";
-                    viderBuffer();
-                    std::cin.get();
+                    attendreEntree();
             }
         } catch (const std::exception& e) {
             std::cout << "\n\t\t" << ROUGE << "[!] Erreur : " << e.what() << RESET << "\n";
-            std::cout << "\n\t\tAppuyez sur Entrée pour continuer...";
-            std::cin.get();
+            attendreEntree();
         }
     } while (choixSousMenu != 0);
 }

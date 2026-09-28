@@ -11,6 +11,10 @@ mon_programme
 data/*
 !data/.gitkeep
 
+# Artefacts de compilation des tests (le code source, lui, reste versionné ;
+# *.o et *.d ci-dessus couvrent déjà les fichiers objets, y compris tests/vendor/)
+tests/tests
+
 # Fichiers temporaires d'éditeurs
 *.swp
 *~

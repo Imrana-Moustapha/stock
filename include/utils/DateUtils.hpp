@@ -5,6 +5,7 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
+#include <ctime>
 
 // Utilitaires de dates partagés (menus, repositories, import CSV).
 // Centralise la validation pour qu'aucune date invalide n'entre dans le système,
@@ -49,5 +50,20 @@ namespace DateUtils
         char reste;
         if (iss >> reste) return std::nullopt; // caractères parasites après la date
         return creer(annee, mois, jour);
+    }
+
+    // Format JJ/MM/AAAA HH:MM:SS en heure locale, pour l'affichage et les exports.
+    inline std::string formaterDateHeure(const std::chrono::system_clock::time_point& tp)
+    {
+        std::time_t temps = std::chrono::system_clock::to_time_t(tp);
+        std::tm local{};
+#if defined(_WIN32)
+        localtime_s(&local, &temps);
+#else
+        localtime_r(&temps, &local);
+#endif
+        std::ostringstream oss;
+        oss << std::put_time(&local, "%d/%m/%Y %H:%M:%S");
+        return oss.str();
     }
 }

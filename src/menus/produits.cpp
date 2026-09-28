@@ -1,102 +1,14 @@
 #include "ui/Console.hpp"
+#include "ui/Saisie.hpp"
 #include "menus/Menus.hpp"
-#include <cstdlib>
 #include "services/GestionnaireStock.hpp"
 #include "exceptions/Exceptions.hpp"
 #include "factories/ProduitFactory.hpp"
 #include "utils/DateUtils.hpp"
-#include <limits>
 
 using namespace Couleur;
 
 namespace {
-
-// Lit une ligne de texte non vide. viderBuffer() élimine le '\n' laissé par
-// le >> précédent (celui du choix de menu) avant le premier getline.
-std::string lireTexte(const std::string& invite)
-{
-    std::string valeur;
-    do {
-        std::cout << invite;
-        std::getline(std::cin, valeur);
-    } while (valeur.empty());
-    return valeur;
-}
-
-double lireDouble(const std::string& invite)
-{
-    double valeur;
-    while (true) {
-        std::cout << invite;
-        if (std::cin >> valeur) break;
-        if (std::cin.eof()) {
-            std::cout << "\n" << ROUGE << "[!] Entrée interrompue. Fermeture de l'application." << RESET << "\n";
-            std::exit(1);
-        }
-        std::cout << ROUGE << "[!] Veuillez entrer un nombre valide." << RESET << "\n";
-        viderBuffer();
-    }
-    viderBuffer(); // laisse la ligne propre pour un éventuel getline suivant
-    return valeur;
-}
-
-int lireEntier(const std::string& invite)
-{
-    int valeur;
-    while (true) {
-        std::cout << invite;
-        if (std::cin >> valeur) break;
-        if (std::cin.eof()) {
-            std::cout << "\n" << ROUGE << "[!] Entrée interrompue. Fermeture de l'application." << RESET << "\n";
-            std::exit(1);
-        }
-        std::cout << ROUGE << "[!] Veuillez entrer un nombre entier valide." << RESET << "\n";
-        viderBuffer();
-    }
-    viderBuffer();
-    return valeur;
-}
-
-// Variantes qui rejettent les valeurs négatives, pour les champs où ça n'a pas
-// de sens métier (prix, quantités, seuils) — évite qu'un prix ou un stock
-// négatif ne se glisse silencieusement dans le système.
-double lireDoublePositif(const std::string& invite)
-{
-    while (true) {
-        double valeur = lireDouble(invite);
-        if (valeur >= 0) return valeur;
-        std::cout << ROUGE << "[!] La valeur ne peut pas être négative." << RESET << "\n";
-    }
-}
-
-int lireEntierPositif(const std::string& invite)
-{
-    while (true) {
-        int valeur = lireEntier(invite);
-        if (valeur >= 0) return valeur;
-        std::cout << ROUGE << "[!] La valeur ne peut pas être négative." << RESET << "\n";
-    }
-}
-
-// Redemande la date tant qu'elle n'existe pas (mois 13, 31 février, etc.).
-std::chrono::year_month_day lireDate(const std::string& libelle)
-{
-    while (true) {
-        int annee = lireEntier("\t\t" + libelle + " - année (AAAA) : ");
-        int mois  = lireEntier("\t\t" + libelle + " - mois (1-12) : ");
-        int jour  = lireEntier("\t\t" + libelle + " - jour (1-31) : ");
-
-        if (auto date = DateUtils::creer(annee, mois, jour))
-            return *date;
-        std::cout << ROUGE << "[!] Cette date n'existe pas, veuillez la ressaisir." << RESET << "\n";
-    }
-}
-
-void pause()
-{
-    std::cout << "\n\t\tAppuyez sur Entrée pour continuer...";
-    std::cin.get();
-}
 
 void afficherListeProduits(const GestionnaireStock& gestionnaire)
 {
@@ -114,7 +26,7 @@ void afficherListeProduits(const GestionnaireStock& gestionnaire)
             std::cout << RESET;
         }
     }
-    pause();
+    attendreEntree();
 }
 
 void ajouterProduitInteractif(GestionnaireStock& gestionnaire)
@@ -129,7 +41,7 @@ void ajouterProduitInteractif(GestionnaireStock& gestionnaire)
 
     if (typeChoisi != 1 && typeChoisi != 2) {
         std::cout << "\n\t\t" << ROUGE << "[!] Type invalide, ajout annulé." << RESET << "\n";
-        pause();
+        attendreEntree();
         return;
     }
 
@@ -137,16 +49,16 @@ void ajouterProduitInteractif(GestionnaireStock& gestionnaire)
 
     if (gestionnaire.trouverProduit(reference) != nullptr) {
         std::cout << "\n\t\t" << ROUGE << "[!] Un produit avec cette référence existe déjà." << RESET << "\n";
-        pause();
+        attendreEntree();
         return;
     }
 
     std::string nom = lireTexte("\t\tNom : ");
     std::string categorie = lireTexte("\t\tCatégorie : ");
-    double prixAchat = lireDoublePositif("\t\tPrix d'achat : ");
-    double prixVente = lireDoublePositif("\t\tPrix de vente : ");
-    int quantite = lireEntierPositif("\t\tQuantité initiale en stock : ");
-    int seuil = lireEntierPositif("\t\tSeuil d'alerte : ");
+    double prixAchat = lireDoubleNonNegatif("\t\tPrix d'achat : ");
+    double prixVente = lireDoubleNonNegatif("\t\tPrix de vente : ");
+    int quantite = lireEntierNonNegatif("\t\tQuantité initiale en stock : ");
+    int seuil = lireEntierNonNegatif("\t\tSeuil d'alerte : ");
 
     if (typeChoisi == 1) {
         gestionnaire.ajouterProduit(ProduitFactory::creerProduit(
@@ -159,7 +71,7 @@ void ajouterProduitInteractif(GestionnaireStock& gestionnaire)
     }
 
     std::cout << "\n\t\t" << VERT << "[OK] Produit '" << nom << "' ajouté avec succès." << RESET << "\n";
-    pause();
+    attendreEntree();
 }
 
 void modifierProduitInteractif(GestionnaireStock& gestionnaire)
@@ -172,7 +84,7 @@ void modifierProduitInteractif(GestionnaireStock& gestionnaire)
 
     if (produit == nullptr) {
         std::cout << "\n\t\t" << ROUGE << "[!] Aucun produit avec cette référence." << RESET << "\n";
-        pause();
+        attendreEntree();
         return;
     }
 
@@ -198,9 +110,9 @@ void modifierProduitInteractif(GestionnaireStock& gestionnaire)
         switch (choix) {
             case 1: produit->setNom(lireTexte("\t\tNouveau nom : ")); break;
             case 2: produit->setCategorie(lireTexte("\t\tNouvelle catégorie : ")); break;
-            case 3: produit->setPrixAchat(lireDoublePositif("\t\tNouveau prix d'achat : ")); break;
-            case 4: produit->setPrixVente(lireDoublePositif("\t\tNouveau prix de vente : ")); break;
-            case 5: produit->setSeuilAlerte(lireEntierPositif("\t\tNouveau seuil d'alerte : ")); break;
+            case 3: produit->setPrixAchat(lireDoubleNonNegatif("\t\tNouveau prix d'achat : ")); break;
+            case 4: produit->setPrixVente(lireDoubleNonNegatif("\t\tNouveau prix de vente : ")); break;
+            case 5: produit->setSeuilAlerte(lireEntierNonNegatif("\t\tNouveau seuil d'alerte : ")); break;
             case 6:
                 if (perissable != nullptr) {
                     perissable->setDatePeremption(lireDate("Nouvelle date"));
@@ -214,7 +126,7 @@ void modifierProduitInteractif(GestionnaireStock& gestionnaire)
 
     gestionnaire.sauvegarder(); // les setters ci-dessus contournent GestionnaireStock : sauvegarde explicite requise
     std::cout << "\n\t\t" << VERT << "[OK] Produit mis à jour." << RESET << "\n";
-    pause();
+    attendreEntree();
 }
 
 void supprimerProduitInteractif(GestionnaireStock& gestionnaire)
@@ -227,7 +139,7 @@ void supprimerProduitInteractif(GestionnaireStock& gestionnaire)
 
     if (produit == nullptr) {
         std::cout << "\n\t\t" << ROUGE << "[!] Aucun produit avec cette référence." << RESET << "\n";
-        pause();
+        attendreEntree();
         return;
     }
 
@@ -241,7 +153,7 @@ void supprimerProduitInteractif(GestionnaireStock& gestionnaire)
     } else {
         std::cout << "\n\t\t" << JAUNE << "Suppression annulée." << RESET << "\n";
     }
-    pause();
+    attendreEntree();
 }
 
 } // namespace anonyme
@@ -273,14 +185,11 @@ void sous_menu_produits(GestionnaireStock& gestionnaire) {
                 case 0: break;
                 default:
                     std::cout << "\n\t\t" << ROUGE << "[!] Choix invalide." << RESET << "\n";
-                    std::cout << "\n\t\tAppuyez sur Entrée pour continuer...";
-                    viderBuffer();
-                    std::cin.get();
+                    attendreEntree();
             }
         } catch (const std::exception& e) {
             std::cout << "\n\t\t" << ROUGE << "[!] Erreur : " << e.what() << RESET << "\n";
-            std::cout << "\n\t\tAppuyez sur Entrée pour continuer...";
-            std::cin.get();
+            attendreEntree();
         }
     } while (choixSousMenu != 0);
 }

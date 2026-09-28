@@ -1,6 +1,6 @@
 #include "ui/Console.hpp"
+#include "ui/Saisie.hpp"
 #include "menus/Menus.hpp"
-#include <cstdlib>
 #include "services/GestionnaireStock.hpp"
 #include "services/GestionnaireCommandes.hpp"
 #include <chrono>
@@ -9,88 +9,6 @@
 using namespace Couleur;
 
 namespace {
-
-std::string lireTexte(const std::string& invite)
-{
-    std::string valeur;
-    do {
-        std::cout << invite;
-        std::getline(std::cin, valeur);
-    } while (valeur.empty());
-    return valeur;
-}
-
-int lireEntier(const std::string& invite)
-{
-    int valeur;
-    while (true) {
-        std::cout << invite;
-        if (std::cin >> valeur) break;
-        if (std::cin.eof()) {
-            std::cout << "\n" << ROUGE << "[!] Entrée interrompue. Fermeture de l'application." << RESET << "\n";
-            std::exit(1);
-        }
-        std::cout << ROUGE << "[!] Veuillez entrer un nombre entier valide." << RESET << "\n";
-        viderBuffer();
-    }
-    viderBuffer();
-    return valeur;
-}
-
-double lireDouble(const std::string& invite)
-{
-    double valeur;
-    while (true) {
-        std::cout << invite;
-        if (std::cin >> valeur) break;
-        if (std::cin.eof()) {
-            std::cout << "\n" << ROUGE << "[!] Entrée interrompue. Fermeture de l'application." << RESET << "\n";
-            std::exit(1);
-        }
-        std::cout << ROUGE << "[!] Veuillez entrer un nombre valide." << RESET << "\n";
-        viderBuffer();
-    }
-    viderBuffer();
-    return valeur;
-}
-
-double lireDoublePositif(const std::string& invite)
-{
-    while (true) {
-        double valeur = lireDouble(invite);
-        if (valeur >= 0) return valeur;
-        std::cout << ROUGE << "[!] La valeur ne peut pas être négative." << RESET << "\n";
-    }
-}
-
-int lireEntierPositif(const std::string& invite)
-{
-    while (true) {
-        int valeur = lireEntier(invite);
-        if (valeur > 0) return valeur;
-        std::cout << ROUGE << "[!] La quantité doit être strictement positive." << RESET << "\n";
-    }
-}
-
-// Redemande la date tant qu'elle n'existe pas (mois 13, 31 février, etc.).
-std::chrono::year_month_day lireDate(const std::string& libelle)
-{
-    while (true) {
-        int annee = lireEntier("\t\t" + libelle + " - année (AAAA) : ");
-        int mois  = lireEntier("\t\t" + libelle + " - mois (1-12) : ");
-        int jour  = lireEntier("\t\t" + libelle + " - jour (1-31) : ");
-
-        if (auto date = DateUtils::creer(annee, mois, jour))
-            return *date;
-        std::cout << ROUGE << "[!] Cette date n'existe pas, veuillez la ressaisir." << RESET << "\n";
-    }
-}
-
-void pause()
-{
-    std::cout << "\n\t\tAppuyez sur Entrée pour continuer...";
-    std::cin.get();
-}
 
 std::string libelleStatut(StatutCommande statut)
 {
@@ -112,7 +30,7 @@ void listerFournisseurs(const GestionnaireCommandes& gc)
         for (const auto& f : gc.getFournisseurs())
             std::cout << "\t\t[" << f.getId() << "] " << f.getNom() << " - " << f.getContact() << " - " << f.getAdresse() << "\n";
     }
-    pause();
+    attendreEntree();
 }
 
 void ajouterFournisseur(GestionnaireCommandes& gc)
@@ -125,7 +43,7 @@ void ajouterFournisseur(GestionnaireCommandes& gc)
 
     int id = gc.ajouterFournisseur(nom, contact, adresse);
     std::cout << "\n\t\t" << VERT << "[OK] Fournisseur ajouté (id=" << id << ")." << RESET << "\n";
-    pause();
+    attendreEntree();
 }
 
 void creerCommande(GestionnaireCommandes& gc)
@@ -135,7 +53,7 @@ void creerCommande(GestionnaireCommandes& gc)
 
     if (gc.getFournisseurs().empty()) {
         std::cout << "\t\t" << ROUGE << "[!] Aucun fournisseur enregistré. Ajoutez-en un d'abord." << RESET << "\n";
-        pause();
+        attendreEntree();
         return;
     }
 
@@ -145,7 +63,7 @@ void creerCommande(GestionnaireCommandes& gc)
     int idCommande = gc.creerCommande(idFournisseur, date);
     std::cout << "\n\t\t" << VERT << "[OK] Commande créée (id=" << idCommande << "). "
                << "Utilisez ensuite \"Ajouter une ligne\" pour y ajouter des produits." << RESET << "\n";
-    pause();
+    attendreEntree();
 }
 
 void ajouterLigneCommande(GestionnaireCommandes& gc)
@@ -155,12 +73,12 @@ void ajouterLigneCommande(GestionnaireCommandes& gc)
 
     int idCommande = lireEntier("\t\tId de la commande : ");
     std::string reference = lireTexte("\t\tRéférence produit : ");
-    int quantite = lireEntierPositif("\t\tQuantité commandée : ");
-    double prixUnitaire = lireDoublePositif("\t\tPrix unitaire : ");
+    int quantite = lireEntierStrictementPositif("\t\tQuantité commandée : ");
+    double prixUnitaire = lireDoubleNonNegatif("\t\tPrix unitaire : ");
 
     gc.ajouterLigneCommande(idCommande, reference, quantite, prixUnitaire);
     std::cout << "\n\t\t" << VERT << "[OK] Ligne ajoutée." << RESET << "\n";
-    pause();
+    attendreEntree();
 }
 
 void listerCommandes(const GestionnaireCommandes& gc)
@@ -180,7 +98,7 @@ void listerCommandes(const GestionnaireCommandes& gc)
                            << " @ " << ligne.getPrixUnitaire() << "\n";
         }
     }
-    pause();
+    attendreEntree();
 }
 
 // Changer le statut d'une commande. Marquer une commande "LIVREE" met à jour
@@ -195,7 +113,7 @@ void changerStatutCommande(GestionnaireStock& gestionnaire, GestionnaireCommande
     Commande* commande = gc.trouverCommande(idCommande);
     if (commande == nullptr) {
         std::cout << "\n\t\t" << ROUGE << "[!] Commande introuvable." << RESET << "\n";
-        pause();
+        attendreEntree();
         return;
     }
 
@@ -210,7 +128,7 @@ void changerStatutCommande(GestionnaireStock& gestionnaire, GestionnaireCommande
         case 3: nouveauStatut = StatutCommande::ANNULEE; break;
         default:
             std::cout << "\n\t\t" << ROUGE << "[!] Choix invalide." << RESET << "\n";
-            pause();
+            attendreEntree();
             return;
     }
 
@@ -235,7 +153,7 @@ void changerStatutCommande(GestionnaireStock& gestionnaire, GestionnaireCommande
     } else {
         std::cout << "\n\t\t" << VERT << "[OK] Statut mis à jour." << RESET << "\n";
     }
-    pause();
+    attendreEntree();
 }
 
 void genererPropositionReapprovisionnement(const GestionnaireStock& gestionnaire)
@@ -246,7 +164,7 @@ void genererPropositionReapprovisionnement(const GestionnaireStock& gestionnaire
     auto sousLeSeuil = gestionnaire.produitsSousLeSeuil();
     if (sousLeSeuil.empty()) {
         std::cout << "\t\t" << VERT << "Aucun produit sous son seuil critique actuellement." << RESET << "\n";
-        pause();
+        attendreEntree();
         return;
     }
 
@@ -258,7 +176,7 @@ void genererPropositionReapprovisionnement(const GestionnaireStock& gestionnaire
                    << " -> commander " << suggestion << " unité(s)\n";
     }
     std::cout << "\n\t\t" << JAUNE << "Utilisez \"Créer une commande\" puis \"Ajouter une ligne\" pour formaliser ces suggestions." << RESET << "\n";
-    pause();
+    attendreEntree();
 }
 
 } // namespace anonyme
@@ -296,14 +214,11 @@ void sous_menu_commandes(GestionnaireStock& gestionnaire, GestionnaireCommandes&
                 case 0: break;
                 default:
                     std::cout << "\n\t\t" << ROUGE << "[!] Choix invalide." << RESET << "\n";
-                    std::cout << "\n\t\tAppuyez sur Entrée pour continuer...";
-                    viderBuffer();
-                    std::cin.get();
+                    attendreEntree();
             }
         } catch (const std::exception& e) {
             std::cout << "\n\t\t" << ROUGE << "[!] Erreur : " << e.what() << RESET << "\n";
-            std::cout << "\n\t\tAppuyez sur Entrée pour continuer...";
-            std::cin.get();
+            attendreEntree();
         }
     } while (choixSousMenu != 0);
 }

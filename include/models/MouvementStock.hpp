@@ -11,6 +11,17 @@ enum class TypeMouvement
     AJUSTEMENT
 };
 
+// Libellé texte d'un type de mouvement (affichage, exports, fichiers de données).
+inline const char* libelle(TypeMouvement type)
+{
+    switch (type) {
+        case TypeMouvement::ENTREE:     return "ENTREE";
+        case TypeMouvement::SORTIE:     return "SORTIE";
+        case TypeMouvement::AJUSTEMENT: return "AJUSTEMENT";
+    }
+    return "?";
+}
+
 class MouvementStock
 {
     private:

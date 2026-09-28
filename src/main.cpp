@@ -1,5 +1,7 @@
 #include <iostream>
 #include "menus/Menus.hpp"
+#include "ui/Console.hpp"
+#include "ui/Saisie.hpp"
 #include "services/GestionnaireStock.hpp"
 #include "services/GestionnaireCommandes.hpp"
 #include "repositories/FichierTexteRepository.hpp"
@@ -28,8 +30,16 @@ int main() {
     Logger logger("data/alertes.log");
     gestionnaire.ajouterObservateur(&logger);
 
-    menu_principal(gestionnaire, gestionnaireCommandes);
+    int code = 0;
+    try {
+        menu_principal(gestionnaire, gestionnaireCommandes);
+    } catch (const EntreeInterrompue&) {
+        // Entrée standard fermée (Ctrl+D, fichier de saisie épuisé) : on quitte proprement.
+        std::cout << "\n" << Couleur::ROUGE << "[!] Entrée interrompue. Fermeture de l'application."
+                  << Couleur::RESET << "\n";
+        code = 1;
+    }
 
     gestionnaire.sauvegarder();
-    return 0;
+    return code;
 }

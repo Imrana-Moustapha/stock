@@ -25,12 +25,7 @@ class FichierTexteMouvementRepository : public IMouvementRepository
 
         static std::string typeVersTexte(TypeMouvement type)
         {
-            switch (type) {
-                case TypeMouvement::ENTREE:     return "ENTREE";
-                case TypeMouvement::SORTIE:     return "SORTIE";
-                case TypeMouvement::AJUSTEMENT: return "AJUSTEMENT";
-            }
-            throw FormatFichierInvalideException("type de mouvement inconnu à l'écriture");
+            return libelle(type);
         }
 
         static TypeMouvement texteVersType(const std::string& texte)

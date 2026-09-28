@@ -1,4 +1,5 @@
 #include "ui/Console.hpp"
+#include "ui/Saisie.hpp"
 #include "menus/Menus.hpp"
 #include "services/GestionnaireStock.hpp"
 #include <algorithm>
@@ -8,12 +9,6 @@
 using namespace Couleur;
 
 namespace {
-
-void pause()
-{
-    std::cout << "\n\t\tAppuyez sur Entrée pour continuer...";
-    std::cin.get();
-}
 
 void afficherValeurStock(const GestionnaireStock& gestionnaire)
 {
@@ -31,7 +26,7 @@ void afficherValeurStock(const GestionnaireStock& gestionnaire)
         for (const auto& [categorie, valeur] : parCategorie)
             std::cout << "\t\t  - " << categorie << " : " << valeur << "\n";
     }
-    pause();
+    attendreEntree();
 }
 
 void afficherProduitsLesPlusMouvementes(const GestionnaireStock& gestionnaire)
@@ -42,7 +37,7 @@ void afficherProduitsLesPlusMouvementes(const GestionnaireStock& gestionnaire)
     auto compteurs = gestionnaire.nombreMouvementsParProduit();
     if (compteurs.empty()) {
         std::cout << "\t\t" << JAUNE << "Aucun mouvement enregistré pour le moment." << RESET << "\n";
-        pause();
+        attendreEntree();
         return;
     }
 
@@ -59,7 +54,7 @@ void afficherProduitsLesPlusMouvementes(const GestionnaireStock& gestionnaire)
         std::cout << "\t\t" << rang++ << ". " << reference << " (" << nom << ") : "
                    << nombre << " mouvement(s)\n";
     }
-    pause();
+    attendreEntree();
 }
 
 void afficherProduitsDormants(const GestionnaireStock& gestionnaire)
@@ -77,7 +72,7 @@ void afficherProduitsDormants(const GestionnaireStock& gestionnaire)
             std::cout << RESET;
         }
     }
-    pause();
+    attendreEntree();
 }
 
 } // namespace anonyme
@@ -106,9 +101,7 @@ void sous_menu_statistiques(GestionnaireStock& gestionnaire) {
             case 0: break;
             default: 
                 std::cout << "\n\t\t" << ROUGE << "[!] Choix invalide." << RESET << "\n";
-                std::cout << "\n\t\tAppuyez sur Entrée pour continuer...";
-                viderBuffer();
-                std::cin.get();
+                attendreEntree();
         }
     } while (choixSousMenu != 0);
 }

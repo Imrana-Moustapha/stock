@@ -1,5 +1,6 @@
 #include "menus/Menus.hpp"
 #include "ui/Console.hpp"
+#include "ui/Saisie.hpp"
 
 using namespace Couleur;
 
@@ -53,9 +54,7 @@ void menu_principal(GestionnaireStock& gestionnaire, GestionnaireCommandes& gest
                 break;
             default:
                 std::cout << "\n\t\t" << ROUGE << "[!] Choix invalide. Veuillez reessayer." << RESET << "\n";
-                std::cout << "\n\t\tAppuyez sur Entrée pour continuer...";
-                viderBuffer();
-                std::cin.get();
+                attendreEntree();
         }
     } while (choixPrincipal != 0);
 }

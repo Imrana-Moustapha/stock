@@ -1,6 +1,6 @@
 #include "ui/Console.hpp"
+#include "ui/Saisie.hpp"
 #include "menus/Menus.hpp"
-#include <cstdlib>
 #include "services/GestionnaireStock.hpp"
 #include <algorithm>
 #include <vector>
@@ -10,39 +10,6 @@
 using namespace Couleur;
 
 namespace {
-
-std::string lireTexte(const std::string& invite)
-{
-    std::string valeur;
-    do {
-        std::cout << invite;
-        std::getline(std::cin, valeur);
-    } while (valeur.empty());
-    return valeur;
-}
-
-int lireEntier(const std::string& invite)
-{
-    int valeur;
-    while (true) {
-        std::cout << invite;
-        if (std::cin >> valeur) break;
-        if (std::cin.eof()) {
-            std::cout << "\n" << ROUGE << "[!] Entrée interrompue. Fermeture de l'application." << RESET << "\n";
-            std::exit(1);
-        }
-        std::cout << ROUGE << "[!] Veuillez entrer un nombre entier valide." << RESET << "\n";
-        viderBuffer();
-    }
-    viderBuffer();
-    return valeur;
-}
-
-void pause()
-{
-    std::cout << "\n\t\tAppuyez sur Entrée pour continuer...";
-    std::cin.get();
-}
 
 std::string versMinuscules(const std::string& texte)
 {
@@ -96,7 +63,7 @@ void rechercherParNomOuReference(const GestionnaireStock& gestionnaire)
 
     std::cout << "\n\t\t" << resultats.size() << " résultat(s) :\n\n";
     afficherResultats(resultats);
-    pause();
+    attendreEntree();
 }
 
 void filtrerParCategorie(const GestionnaireStock& gestionnaire)
@@ -113,7 +80,7 @@ void filtrerParCategorie(const GestionnaireStock& gestionnaire)
 
     std::cout << "\n\t\t" << resultats.size() << " résultat(s) :\n\n";
     afficherResultats(resultats);
-    pause();
+    attendreEntree();
 }
 
 void filtrerPerissablesProchesPeremption(const GestionnaireStock& gestionnaire)
@@ -133,7 +100,7 @@ void filtrerPerissablesProchesPeremption(const GestionnaireStock& gestionnaire)
 
     std::cout << "\n\t\t" << resultats.size() << " résultat(s) :\n\n";
     afficherResultats(resultats);
-    pause();
+    attendreEntree();
 }
 
 void afficherProduitsSousLeSeuil(const GestionnaireStock& gestionnaire)
@@ -144,7 +111,7 @@ void afficherProduitsSousLeSeuil(const GestionnaireStock& gestionnaire)
     auto resultats = gestionnaire.produitsSousLeSeuil();
     std::cout << "\n\t\t" << resultats.size() << " résultat(s) :\n\n";
     afficherResultats(resultats);
-    pause();
+    attendreEntree();
 }
 
 } // namespace anonyme
@@ -175,9 +142,7 @@ void sous_menu_recherche(GestionnaireStock& gestionnaire) {
             case 0: break;
             default: 
                 std::cout << "\n\t\t" << ROUGE << "[!] Choix invalide." << RESET << "\n";
-                std::cout << "\n\t\tAppuyez sur Entrée pour continuer...";
-                viderBuffer();
-                std::cin.get();
+                attendreEntree();
         }
     } while (choixSousMenu != 0);
 }

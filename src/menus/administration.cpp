@@ -1,6 +1,6 @@
 #include "ui/Console.hpp"
+#include "ui/Saisie.hpp"
 #include "menus/Menus.hpp"
-#include <cstdlib>
 #include "services/GestionnaireStock.hpp"
 #include "factories/ProduitFactory.hpp"
 #include "models/Utilisateur.hpp"
@@ -15,63 +15,6 @@
 using namespace Couleur;
 
 namespace {
-
-std::string lireTexte(const std::string& invite)
-{
-    std::string valeur;
-    do {
-        std::cout << invite;
-        std::getline(std::cin, valeur);
-    } while (valeur.empty());
-    return valeur;
-}
-
-int lireEntier(const std::string& invite)
-{
-    int valeur;
-    while (true) {
-        std::cout << invite;
-        if (std::cin >> valeur) break;
-        if (std::cin.eof()) {
-            std::cout << "\n" << ROUGE << "[!] Entrée interrompue. Fermeture de l'application." << RESET << "\n";
-            std::exit(1);
-        }
-        std::cout << ROUGE << "[!] Veuillez entrer un nombre entier valide." << RESET << "\n";
-        viderBuffer();
-    }
-    viderBuffer();
-    return valeur;
-}
-
-void pause()
-{
-    std::cout << "\n\t\tAppuyez sur Entrée pour continuer...";
-    std::cin.get();
-}
-
-std::string libelleType(TypeMouvement type)
-{
-    switch (type) {
-        case TypeMouvement::ENTREE:     return "ENTREE";
-        case TypeMouvement::SORTIE:     return "SORTIE";
-        case TypeMouvement::AJUSTEMENT: return "AJUSTEMENT";
-    }
-    return "?";
-}
-
-std::string formaterDateHeure(const std::chrono::system_clock::time_point& tp)
-{
-    auto tempsC = std::chrono::system_clock::to_time_t(tp);
-    std::tm tmLocal{};
-#if defined(_WIN32)
-    localtime_s(&tmLocal, &tempsC);
-#else
-    localtime_r(&tempsC, &tmLocal);
-#endif
-    std::ostringstream oss;
-    oss << std::put_time(&tmLocal, "%d/%m/%Y %H:%M:%S");
-    return oss.str();
-}
 
 // Import massif : chaque ligne (après l'en-tête) est traitée indépendamment.
 // Une ligne invalide ne bloque pas les suivantes ; un rapport d'erreurs est
@@ -88,7 +31,7 @@ void importerProduitsCsv(GestionnaireStock& gestionnaire)
     std::ifstream fichier(chemin);
     if (!fichier) {
         std::cout << "\n\t\t" << ROUGE << "[!] Impossible d'ouvrir ce fichier." << RESET << "\n";
-        pause();
+        attendreEntree();
         return;
     }
 
@@ -138,7 +81,7 @@ void importerProduitsCsv(GestionnaireStock& gestionnaire)
         for (const auto& e : erreurs)
             std::cout << "\t\t  - " << e << "\n";
     }
-    pause();
+    attendreEntree();
 }
 
 void exporterCatalogueCsv(const GestionnaireStock& gestionnaire)
@@ -150,7 +93,7 @@ void exporterCatalogueCsv(const GestionnaireStock& gestionnaire)
     std::ofstream fichier(chemin, std::ios::trunc);
     if (!fichier) {
         std::cout << "\n\t\t" << ROUGE << "[!] Impossible d'écrire ce fichier." << RESET << "\n";
-        pause();
+        attendreEntree();
         return;
     }
 
@@ -169,7 +112,7 @@ void exporterCatalogueCsv(const GestionnaireStock& gestionnaire)
     }
 
     std::cout << "\n\t\t" << VERT << "[OK] " << gestionnaire.nombreDeProduits() << " produit(s) exporté(s) vers " << chemin << RESET << "\n";
-    pause();
+    attendreEntree();
 }
 
 void exporterHistoriqueCsv(const GestionnaireStock& gestionnaire)
@@ -181,20 +124,20 @@ void exporterHistoriqueCsv(const GestionnaireStock& gestionnaire)
     std::ofstream fichier(chemin, std::ios::trunc);
     if (!fichier) {
         std::cout << "\n\t\t" << ROUGE << "[!] Impossible d'écrire ce fichier." << RESET << "\n";
-        pause();
+        attendreEntree();
         return;
     }
 
     fichier << "id,dateHeure,type,reference,quantite,auteur\n";
     for (const auto& mvt : gestionnaire.getHistorique()) {
-        fichier << mvt.getId() << ',' << formaterDateHeure(mvt.getDateHeure()) << ','
-                << libelleType(mvt.getType()) << ','
+        fichier << mvt.getId() << ',' << DateUtils::formaterDateHeure(mvt.getDateHeure()) << ','
+                << libelle(mvt.getType()) << ','
                 << Csv::echapper(mvt.getReferenceProduit()) << ',' << mvt.getQuantite() << ','
                 << Csv::echapper(mvt.getAuteur()) << "\n";
     }
 
     std::cout << "\n\t\t" << VERT << "[OK] " << gestionnaire.getHistorique().size() << " mouvement(s) exporté(s) vers " << chemin << RESET << "\n";
-    pause();
+    attendreEntree();
 }
 
 void menuExport(const GestionnaireStock& gestionnaire)
@@ -207,7 +150,7 @@ void menuExport(const GestionnaireStock& gestionnaire)
 
     if (choix == 1) exporterCatalogueCsv(gestionnaire);
     else if (choix == 2) exporterHistoriqueCsv(gestionnaire);
-    else { std::cout << "\n\t\t" << ROUGE << "[!] Choix invalide." << RESET << "\n"; pause(); }
+    else { std::cout << "\n\t\t" << ROUGE << "[!] Choix invalide." << RESET << "\n"; attendreEntree(); }
 }
 
 void configurerSeuils(GestionnaireStock& gestionnaire)
@@ -226,7 +169,7 @@ void configurerSeuils(GestionnaireStock& gestionnaire)
     } else {
         std::cout << "\n\t\t" << JAUNE << "Action annulée." << RESET << "\n";
     }
-    pause();
+    attendreEntree();
 }
 
 // Gestion des utilisateurs : liste maintenue en mémoire pour la durée de la session
@@ -260,7 +203,7 @@ void gererUtilisateurs()
                     std::cout << "\t\t- " << u.getUsername() << " (" << role << ")\n";
                 }
             }
-            pause();
+            attendreEntree();
         } else if (choix == 2) {
             clear();
             std::cout << "\n\n" << CYAN << GRAS << "\t\tAjouter un utilisateur\n" << RESET << "\n";
@@ -273,10 +216,10 @@ void gererUtilisateurs()
             // un hash vide est un espace réservé, jamais utilisable en l'état.
             utilisateurs.emplace_back(prochainId++, nom, "", role);
             std::cout << "\n\t\t" << VERT << "[OK] Utilisateur ajouté." << RESET << "\n";
-            pause();
+            attendreEntree();
         } else if (choix != 0) {
             std::cout << "\n\t\t" << ROUGE << "[!] Choix invalide." << RESET << "\n";
-            pause();
+            attendreEntree();
         }
     } while (choix != 0);
 }
@@ -310,14 +253,11 @@ void sous_menu_administration(GestionnaireStock& gestionnaire) {
                 case 0: break;
                 default: 
                     std::cout << "\n\t\t" << ROUGE << "[!] Choix invalide." << RESET << "\n";
-                    std::cout << "\n\t\tAppuyez sur Entrée pour continuer...";
-                    viderBuffer();
-                    std::cin.get();
+                    attendreEntree();
             }
         } catch (const std::exception& e) {
             std::cout << "\n\t\t" << ROUGE << "[!] Erreur : " << e.what() << RESET << "\n";
-            std::cout << "\n\t\tAppuyez sur Entrée pour continuer...";
-            std::cin.get();
+            attendreEntree();
         }
     } while (choixSousMenu != 0);
 }
