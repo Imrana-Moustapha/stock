@@ -14,6 +14,7 @@
 #include "observers/IObservateurStock.hpp"
 #include "exceptions/Exceptions.hpp"
 #include "repositories/IRepository.hpp"
+#include "repositories/IMouvementRepository.hpp"
 
 // Couche Service : applique les règles métier sur la collection de produits.
 // Ne sait rien de l'affichage (couche UI) ni du format de stockage réel —
@@ -25,6 +26,7 @@ class GestionnaireStock
         std::vector<std::unique_ptr<Produit>> produits;
         std::vector<IObservateurStock*> observateurs;
         std::unique_ptr<IRepository> repository;
+        std::unique_ptr<IMouvementRepository> repositoryMouvements;
         std::vector<MouvementStock> historique;
         int prochainIdMouvement = 1;
 
@@ -45,9 +47,10 @@ class GestionnaireStock
         }
 
     public:
-        // Le repository est injecté : GestionnaireStock ne sait pas s'il s'agit
-        // d'un FichierTexteRepository, d'un CsvRepository ou d'autre chose.
-        explicit GestionnaireStock(std::unique_ptr<IRepository> repo) : repository(std::move(repo)) {}
+        // Les deux repositories sont injectés : GestionnaireStock ne sait pas s'il
+        // s'agit de FichierTexteRepository/FichierTexteMouvementRepository ou d'autre chose.
+        GestionnaireStock(std::unique_ptr<IRepository> repo, std::unique_ptr<IMouvementRepository> repoMouvements)
+            : repository(std::move(repo)), repositoryMouvements(std::move(repoMouvements)) {}
 
         // Non copiable (les unique_ptr l'interdisent de toute façon), mais déplaçable.
         GestionnaireStock(const GestionnaireStock&) = delete;
@@ -55,16 +58,24 @@ class GestionnaireStock
         GestionnaireStock(GestionnaireStock&&) = default;
         GestionnaireStock& operator=(GestionnaireStock&&) = default;
 
-        // --- Persistance (délègue au repository injecté) ---
+        // --- Persistance (délègue aux repositories injectés) ---
 
         void charger()
         {
             produits = repository->charger();
+            historique = repositoryMouvements->charger();
+
+            // Reprend la numérotation là où le journal chargé s'était arrêté,
+            // pour ne jamais réutiliser un id déjà présent sur disque.
+            prochainIdMouvement = 1;
+            for (const auto& mvt : historique)
+                prochainIdMouvement = std::max(prochainIdMouvement, mvt.getId() + 1);
         }
 
         void sauvegarder() const
         {
             repository->sauvegarder(produits);
+            repositoryMouvements->sauvegarder(historique);
         }
 
         // --- Pattern Observer ---
@@ -79,6 +90,7 @@ class GestionnaireStock
         void ajouterProduit(std::unique_ptr<Produit> produit)
         {
             produits.push_back(std::move(produit));
+            sauvegarder();
         }
 
         // Retourne un pointeur nu (non propriétaire) vers le produit, ou nullptr si absent.
@@ -107,6 +119,7 @@ class GestionnaireStock
             if (it == produits.end())
                 throw ProduitIntrouvableException(reference);
             produits.erase(it, produits.end());
+            sauvegarder();
         }
 
         // --- Mouvements de stock ---
@@ -119,6 +132,7 @@ class GestionnaireStock
             Produit& produit = trouverProduitOuLever(reference);
             produit.setQuantiteStock(produit.getQuantiteStock() + quantite);
             enregistrerMouvement(reference, TypeMouvement::ENTREE, quantite, auteur);
+            sauvegarder();
         }
 
         void retirerStock(const std::string& reference, int quantite, const std::string& auteur = "Système")
@@ -133,6 +147,7 @@ class GestionnaireStock
             produit.setQuantiteStock(produit.getQuantiteStock() - quantite);
             enregistrerMouvement(reference, TypeMouvement::SORTIE, quantite, auteur);
             notifierSiSeuilCritique(produit);
+            sauvegarder();
         }
 
         // Fixe la quantité en stock à une valeur absolue (ex. après un inventaire physique),
@@ -148,6 +163,7 @@ class GestionnaireStock
             produit.setQuantiteStock(nouvelleQuantite);
             enregistrerMouvement(reference, TypeMouvement::AJUSTEMENT, ecart, auteur);
             notifierSiSeuilCritique(produit);
+            sauvegarder();
         }
 
         // Applique un même seuil d'alerte à tous les produits existants — utile pour
@@ -159,6 +175,7 @@ class GestionnaireStock
                 throw std::invalid_argument("Le seuil ne peut pas être négatif.");
             for (auto& p : produits)
                 p->setSeuilAlerte(seuil);
+            sauvegarder();
         }
 
         const std::vector<MouvementStock>& getHistorique() const

@@ -1,9 +1,9 @@
 #include "ui/Console.hpp"
+#include <cstdlib>
 
 using namespace Couleur;
 
-void viderBuffer()
-{
+void viderBuffer() {
     std::cin.clear();
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 }
@@ -15,10 +15,15 @@ void clear()
     std::cout << "\033[2J\033[1;1H";
 }
 
-bool lireChoix(int &choix)
+bool lireChoix(int& choix)
 {
-    if (!(std::cin >> choix))
-    {
+    if (!(std::cin >> choix)) {
+        // Si l'entrée standard est fermée (EOF), aucune nouvelle saisie ne viendra
+        // jamais : continuer à redemander bouclerait indéfiniment. On arrête proprement.
+        if (std::cin.eof()) {
+            std::cout << "\n" << ROUGE << "[!] Entrée interrompue. Fermeture de l'application." << RESET << "\n";
+            std::exit(1);
+        }
         std::cout << RESET;
         std::cout << "\n\t\t" << ROUGE << "[!] Erreur de saisie." << RESET << "\n";
         viderBuffer();

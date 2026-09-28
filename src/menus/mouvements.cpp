@@ -1,5 +1,6 @@
 #include "ui/Console.hpp"
 #include "menus/Menus.hpp"
+#include <cstdlib>
 #include "services/Gestionnairestock.hpp"
 #include "exceptions/Exceptions.hpp"
 #include <chrono>
@@ -26,6 +27,10 @@ int lireEntier(const std::string& invite)
     while (true) {
         std::cout << invite;
         if (std::cin >> valeur) break;
+        if (std::cin.eof()) {
+            std::cout << "\n" << ROUGE << "[!] Entrée interrompue. Fermeture de l'application." << RESET << "\n";
+            std::exit(1);
+        }
         std::cout << ROUGE << "[!] Veuillez entrer un nombre entier valide." << RESET << "\n";
         viderBuffer();
     }

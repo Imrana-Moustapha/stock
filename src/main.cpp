@@ -2,10 +2,13 @@
 #include "services/Gestionnairestock.hpp"
 #include "services/GestionnaireCommandes.hpp"
 #include "repositories/FichierTexteRepository.hpp"
+#include "repositories/FichierTexteMouvementRepository.hpp"
 #include "observers/Logger.hpp"
 
 int main() {
-    GestionnaireStock gestionnaire(std::make_unique<FichierTexteRepository>("data/stock.txt"));
+    GestionnaireStock gestionnaire(
+        std::make_unique<FichierTexteRepository>("data/stock.txt"),
+        std::make_unique<FichierTexteMouvementRepository>("data/mouvements.txt"));
     gestionnaire.charger();
 
     GestionnaireCommandes gestionnaireCommandes;

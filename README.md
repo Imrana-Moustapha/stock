@@ -193,7 +193,14 @@ docker compose run --rm stock
 
 ## Statut du projet
 
-En développement actif. Le squelette de l'architecture (modèle, menus, Makefile, conteneurisation Docker) est en place ; la logique métier et la persistance sont en cours d'implémentation progressive (gestion des produits déjà fonctionnelle).
+Les six modules de l'application (produits, mouvements de stock, recherche, commandes/fournisseurs, statistiques, administration) sont fonctionnels.
+
+**Persistance** : les produits (`data/stock.txt`) et le journal des mouvements (`data/mouvements.txt`) sont sauvegardés automatiquement après chaque opération qui les modifie, et rechargés au démarrage. Les alertes de seuil critique sont écrites dans `data/alertes.log`.
+
+**Limitations connues** :
+- Les fournisseurs, les commandes et les utilisateurs ne sont pas encore persistés : ils sont perdus à la fermeture du programme.
+- Pas encore de tests unitaires automatisés.
+- Seuls deux types de produits existent (`STANDARD` et `PERISSABLE`).
 
 ## Auteur
 

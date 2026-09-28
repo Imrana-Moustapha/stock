@@ -1,5 +1,6 @@
 #include "ui/Console.hpp"
 #include "menus/Menus.hpp"
+#include <cstdlib>
 #include "services/Gestionnairestock.hpp"
 #include "services/GestionnaireCommandes.hpp"
 #include <chrono>
@@ -24,6 +25,10 @@ int lireEntier(const std::string& invite)
     while (true) {
         std::cout << invite;
         if (std::cin >> valeur) break;
+        if (std::cin.eof()) {
+            std::cout << "\n" << ROUGE << "[!] Entrée interrompue. Fermeture de l'application." << RESET << "\n";
+            std::exit(1);
+        }
         std::cout << ROUGE << "[!] Veuillez entrer un nombre entier valide." << RESET << "\n";
         viderBuffer();
     }
@@ -37,11 +42,33 @@ double lireDouble(const std::string& invite)
     while (true) {
         std::cout << invite;
         if (std::cin >> valeur) break;
+        if (std::cin.eof()) {
+            std::cout << "\n" << ROUGE << "[!] Entrée interrompue. Fermeture de l'application." << RESET << "\n";
+            std::exit(1);
+        }
         std::cout << ROUGE << "[!] Veuillez entrer un nombre valide." << RESET << "\n";
         viderBuffer();
     }
     viderBuffer();
     return valeur;
+}
+
+double lireDoublePositif(const std::string& invite)
+{
+    while (true) {
+        double valeur = lireDouble(invite);
+        if (valeur >= 0) return valeur;
+        std::cout << ROUGE << "[!] La valeur ne peut pas être négative." << RESET << "\n";
+    }
+}
+
+int lireEntierPositif(const std::string& invite)
+{
+    while (true) {
+        int valeur = lireEntier(invite);
+        if (valeur > 0) return valeur;
+        std::cout << ROUGE << "[!] La quantité doit être strictement positive." << RESET << "\n";
+    }
 }
 
 void pause()
@@ -118,8 +145,8 @@ void ajouterLigneCommande(GestionnaireCommandes& gc)
 
     int idCommande = lireEntier("\t\tId de la commande : ");
     std::string reference = lireTexte("\t\tRéférence produit : ");
-    int quantite = lireEntier("\t\tQuantité commandée : ");
-    double prixUnitaire = lireDouble("\t\tPrix unitaire : ");
+    int quantite = lireEntierPositif("\t\tQuantité commandée : ");
+    double prixUnitaire = lireDoublePositif("\t\tPrix unitaire : ");
 
     gc.ajouterLigneCommande(idCommande, reference, quantite, prixUnitaire);
     std::cout << "\n\t\t" << VERT << "[OK] Ligne ajoutée." << RESET << "\n";
