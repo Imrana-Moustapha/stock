@@ -102,3 +102,41 @@ class ProduitPerissable : public Produit
                       << static_cast<int>(datePeremption.year()) << "\n";
         }
 };
+
+class ProduitElectronique : public Produit
+{
+    private:
+        int dureeGarantieMois;
+        std::string numeroSerie;
+
+        static void verifierGarantie(int mois)
+        {
+            if (mois < 0)
+                throw std::invalid_argument("La durée de garantie ne peut pas être négative.");
+        }
+
+    public:
+        ProduitElectronique(std::string ref, std::string n, std::string cat, double pA, double pV, int qte, int seuil,
+                             int dureeGarantie, std::string numSerie)
+            : Produit(std::move(ref), std::move(n), std::move(cat), pA, pV, qte, seuil),
+              dureeGarantieMois(dureeGarantie), numeroSerie(std::move(numSerie))
+        {
+            verifierGarantie(dureeGarantie);
+        }
+
+        int getDureeGarantieMois() const { return dureeGarantieMois; }
+        const std::string& getNumeroSerie() const { return numeroSerie; }
+
+        void setDureeGarantieMois(int mois)
+        {
+            verifierGarantie(mois);
+            dureeGarantieMois = mois;
+        }
+
+        void afficher() const override
+        {
+            Produit::afficher();
+            std::cout << "   -> Garantie : " << dureeGarantieMois << " mois"
+                      << " | N/S : " << numeroSerie << "\n";
+        }
+};

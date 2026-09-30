@@ -24,8 +24,10 @@ void importerProduitsCsv(GestionnaireStock& gestionnaire)
     clear();
     std::cout << "\n\n" << CYAN << GRAS << "\t\tImport massif de produits (CSV)\n" << RESET << "\n";
     std::cout << "\t\tFormat attendu (avec en-tête) :\n";
-    std::cout << "\t\t  type,reference,nom,categorie,prixAchat,prixVente,quantite,seuil,datePeremption\n";
-    std::cout << "\t\t  type = STANDARD ou PERISSABLE ; datePeremption (AAAA-MM-JJ) uniquement si périssable.\n\n";
+    std::cout << "\t\t  type,reference,nom,categorie,prixAchat,prixVente,quantite,seuil,datePeremption,dureeGarantieMois,numeroSerie\n";
+    std::cout << "\t\t  type = STANDARD, PERISSABLE ou ELECTRONIQUE.\n";
+    std::cout << "\t\t  datePeremption (AAAA-MM-JJ) uniquement si périssable ; garantie/numéro de série uniquement si électronique.\n";
+    std::cout << "\t\t  Laisser les colonnes non pertinentes vides.\n\n";
 
     std::string chemin = lireTexte("\t\tChemin du fichier CSV : ");
     std::ifstream fichier(chemin);
@@ -54,20 +56,34 @@ void importerProduitsCsv(GestionnaireStock& gestionnaire)
                 if (champs[i].empty())
                     throw std::invalid_argument("colonne obligatoire vide (position " + std::to_string(i + 1) + ")");
 
+            // Colonnes optionnelles (datePeremption, dureeGarantieMois, numeroSerie) : présentes
+            // ou non selon le type, vides sinon. On les lit défensivement (une ligne peut avoir
+            // moins de colonnes qu'attendu si elle a été tronquée à la main).
+            auto champOptionnel = [&champs](std::size_t i) { return i < champs.size() ? champs[i] : ""; };
+
             TypeProduit type = ProduitFactory::typeDepuisTexte(champs[0]);
             std::optional<std::chrono::year_month_day> date;
+            std::optional<int> dureeGarantie;
+            std::optional<std::string> numeroSerie;
 
             if (type == TypeProduit::PERISSABLE) {
-                if (champs.size() < 9) throw std::invalid_argument("date de péremption manquante");
-                date = DateUtils::parserIso(champs[8]);
+                std::string texteDate = champOptionnel(8);
+                if (texteDate.empty()) throw std::invalid_argument("date de péremption manquante");
+                date = DateUtils::parserIso(texteDate);
                 if (!date.has_value())
-                    throw std::invalid_argument("date de péremption invalide : " + champs[8]);
+                    throw std::invalid_argument("date de péremption invalide : " + texteDate);
+            } else if (type == TypeProduit::ELECTRONIQUE) {
+                std::string texteGarantie = champOptionnel(9);
+                numeroSerie = champOptionnel(10);
+                if (texteGarantie.empty() || numeroSerie->empty())
+                    throw std::invalid_argument("durée de garantie ou numéro de série manquant");
+                dureeGarantie = std::stoi(texteGarantie);
             }
 
             gestionnaire.ajouterProduit(ProduitFactory::creerProduit(
                 type, champs[1], champs[2], champs[3],
                 std::stod(champs[4]), std::stod(champs[5]),
-                std::stoi(champs[6]), std::stoi(champs[7]), date));
+                std::stoi(champs[6]), std::stoi(champs[7]), date, dureeGarantie, numeroSerie));
 
             succes++;
         } catch (const std::exception& e) {
@@ -98,17 +114,22 @@ void exporterCatalogueCsv(const GestionnaireStock& gestionnaire)
     }
 
     // Même format que l'import : un fichier exporté peut être ré-importé tel quel.
-    fichier << "type,reference,nom,categorie,prixAchat,prixVente,quantite,seuil,datePeremption\n";
+    fichier << "type,reference,nom,categorie,prixAchat,prixVente,quantite,seuil,datePeremption,dureeGarantieMois,numeroSerie\n";
     for (const auto& p : gestionnaire.getProduits()) {
         const auto* perissable = dynamic_cast<const ProduitPerissable*>(p.get());
+        const auto* electronique = dynamic_cast<const ProduitElectronique*>(p.get());
 
-        fichier << (perissable ? "PERISSABLE" : "STANDARD") << ','
+        std::string type = perissable ? "PERISSABLE" : electronique ? "ELECTRONIQUE" : "STANDARD";
+
+        fichier << type << ','
                 << Csv::echapper(p->getReference()) << ','
                 << Csv::echapper(p->getNom()) << ','
                 << Csv::echapper(p->getCategorie()) << ','
                 << p->getPrixAchat() << ',' << p->getPrixVente() << ','
                 << p->getQuantiteStock() << ',' << p->getSeuilAlerte() << ','
-                << (perissable ? DateUtils::formaterIso(perissable->getDatePeremption()) : "") << "\n";
+                << (perissable ? DateUtils::formaterIso(perissable->getDatePeremption()) : "") << ','
+                << (electronique ? std::to_string(electronique->getDureeGarantieMois()) : "") << ','
+                << (electronique ? Csv::echapper(electronique->getNumeroSerie()) : "") << "\n";
     }
 
     std::cout << "\n\t\t" << VERT << "[OK] " << gestionnaire.nombreDeProduits() << " produit(s) exporté(s) vers " << chemin << RESET << "\n";

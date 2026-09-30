@@ -113,5 +113,56 @@ TEST_CASE("ProduitFactory::typeDepuisTexte", "[factory]")
     REQUIRE(ProduitFactory::typeDepuisTexte("STANDARD") == TypeProduit::STANDARD);
     REQUIRE(ProduitFactory::typeDepuisTexte("PERISSABLE") == TypeProduit::PERISSABLE);
     REQUIRE_THROWS_AS(ProduitFactory::typeDepuisTexte("standard"), std::invalid_argument);   // sensible à la casse
-    REQUIRE_THROWS_AS(ProduitFactory::typeDepuisTexte("ELECTRONIQUE"), std::invalid_argument);
+    REQUIRE_THROWS_AS(ProduitFactory::typeDepuisTexte("INCONNU"), std::invalid_argument);
+}
+
+// ---------------------------------------------------------------------------------------
+// ProduitElectronique
+// ---------------------------------------------------------------------------------------
+
+TEST_CASE("ProduitElectronique : accesseurs", "[produit][electronique]")
+{
+    ProduitElectronique p("R1", "Casque", "Audio", 20, 40, 5, 2, 24, "SN-001");
+    REQUIRE(p.getDureeGarantieMois() == 24);
+    REQUIRE(p.getNumeroSerie() == "SN-001");
+    REQUIRE(p.getReference() == "R1");   // hérité de Produit
+}
+
+TEST_CASE("ProduitElectronique refuse une durée de garantie négative", "[produit][electronique]")
+{
+    REQUIRE_THROWS_AS(ProduitElectronique("R1", "N", "C", 1, 2, 3, 1, -1, "SN"), std::invalid_argument);
+
+    ProduitElectronique p("R1", "N", "C", 1, 2, 3, 1, 12, "SN");
+    REQUIRE_THROWS_AS(p.setDureeGarantieMois(-5), std::invalid_argument);
+    REQUIRE(p.getDureeGarantieMois() == 12);   // inchangée après le refus
+}
+
+TEST_CASE("ProduitElectronique : une garantie de zéro mois est acceptée", "[produit][electronique]")
+{
+    REQUIRE_NOTHROW(ProduitElectronique("R1", "N", "C", 1, 2, 3, 1, 0, "SN"));
+}
+
+TEST_CASE("ProduitFactory crée un ProduitElectronique", "[factory][electronique]")
+{
+    auto p = ProduitFactory::creerProduit(TypeProduit::ELECTRONIQUE, "R1", "Casque", "Audio",
+                                          20, 40, 5, 2, std::nullopt, 24, std::string("SN-001"));
+    auto* electronique = dynamic_cast<ProduitElectronique*>(p.get());
+    REQUIRE(electronique != nullptr);
+    REQUIRE(electronique->getDureeGarantieMois() == 24);
+    REQUIRE(electronique->getNumeroSerie() == "SN-001");
+}
+
+TEST_CASE("ProduitFactory exige garantie ET numéro de série pour un électronique", "[factory][electronique]")
+{
+    using T = TypeProduit;
+    REQUIRE_THROWS_AS(ProduitFactory::creerProduit(T::ELECTRONIQUE, "R", "N", "C", 1, 2, 3, 1),
+                      std::invalid_argument);
+    REQUIRE_THROWS_AS(ProduitFactory::creerProduit(T::ELECTRONIQUE, "R", "N", "C", 1, 2, 3, 1,
+                                                    std::nullopt, 12),   // numéro de série manquant
+                      std::invalid_argument);
+}
+
+TEST_CASE("ProduitFactory::typeDepuisTexte reconnaît ELECTRONIQUE", "[factory][electronique]")
+{
+    REQUIRE(ProduitFactory::typeDepuisTexte("ELECTRONIQUE") == TypeProduit::ELECTRONIQUE);
 }

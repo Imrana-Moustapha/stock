@@ -160,3 +160,41 @@ TEST_CASE("FichierTexteMouvementRepository::charger refuse une ligne mal formée
     FichierTexteMouvementRepository repo(chemin);
     REQUIRE_THROWS_AS(repo.charger(), FormatFichierInvalideException);
 }
+
+TEST_CASE("FichierTexteRepository : aller-retour avec un produit électronique", "[repo][fichier][electronique]")
+{
+    DossierTemporaire dossier;
+    FichierTexteRepository repo(dossier.fichier("stock.txt"));
+
+    std::vector<std::unique_ptr<Produit>> produits;
+    produits.push_back(ProduitFactory::creerProduit(TypeProduit::ELECTRONIQUE, "R1", "Casque; Bluetooth", "Audio",
+                                                      20, 40, 5, 2, std::nullopt, 24, std::string("SN\\001")));
+    repo.sauvegarder(produits);
+
+    auto relu = repo.charger();
+    REQUIRE(relu.size() == 1);
+    auto* p = dynamic_cast<ProduitElectronique*>(relu[0].get());
+    REQUIRE(p != nullptr);
+    REQUIRE(p->getNom() == "Casque; Bluetooth");   // le ';' survit à l'échappement
+    REQUIRE(p->getDureeGarantieMois() == 24);
+    REQUIRE(p->getNumeroSerie() == "SN\\001");     // le '\' aussi
+}
+
+TEST_CASE("FichierTexteRepository : les trois types cohabitent dans le même fichier", "[repo][fichier]")
+{
+    DossierTemporaire dossier;
+    FichierTexteRepository repo(dossier.fichier("stock.txt"));
+
+    std::vector<std::unique_ptr<Produit>> produits;
+    produits.push_back(produit("STD", 5));
+    produits.push_back(ProduitFactory::creerProduit(TypeProduit::PERISSABLE, "PER", "N", "C", 1, 2, 3, 1,
+                                                      date(2026, 10, 15)));
+    produits.push_back(ProduitFactory::creerProduit(TypeProduit::ELECTRONIQUE, "ELEC", "N", "C", 1, 2, 3, 1,
+                                                      std::nullopt, 12, std::string("SN")));
+    repo.sauvegarder(produits);
+
+    auto relu = repo.charger();
+    REQUIRE(relu.size() == 3);
+    REQUIRE(dynamic_cast<ProduitPerissable*>(relu[1].get()) != nullptr);
+    REQUIRE(dynamic_cast<ProduitElectronique*>(relu[2].get()) != nullptr);
+}

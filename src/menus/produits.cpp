@@ -37,9 +37,10 @@ void ajouterProduitInteractif(GestionnaireStock& gestionnaire)
     std::cout << "\t\tType de produit :\n";
     std::cout << "\t\t  1. Standard\n";
     std::cout << "\t\t  2. Périssable\n";
+    std::cout << "\t\t  3. Électronique\n";
     int typeChoisi = lireEntier("\t\tVotre choix : ");
 
-    if (typeChoisi != 1 && typeChoisi != 2) {
+    if (typeChoisi < 1 || typeChoisi > 3) {
         std::cout << "\n\t\t" << ROUGE << "[!] Type invalide, ajout annulé." << RESET << "\n";
         attendreEntree();
         return;
@@ -63,11 +64,18 @@ void ajouterProduitInteractif(GestionnaireStock& gestionnaire)
     if (typeChoisi == 1) {
         gestionnaire.ajouterProduit(ProduitFactory::creerProduit(
             TypeProduit::STANDARD, reference, nom, categorie, prixAchat, prixVente, quantite, seuil));
-    } else {
+    } else if (typeChoisi == 2) {
         auto date = lireDate("Date de péremption");
 
         gestionnaire.ajouterProduit(ProduitFactory::creerProduit(
             TypeProduit::PERISSABLE, reference, nom, categorie, prixAchat, prixVente, quantite, seuil, date));
+    } else {
+        int dureeGarantie = lireEntierNonNegatif("\t\tDurée de garantie (mois) : ");
+        std::string numeroSerie = lireTexte("\t\tNuméro de série : ");
+
+        gestionnaire.ajouterProduit(ProduitFactory::creerProduit(
+            TypeProduit::ELECTRONIQUE, reference, nom, categorie, prixAchat, prixVente, quantite, seuil,
+            std::nullopt, dureeGarantie, numeroSerie));
     }
 
     std::cout << "\n\t\t" << VERT << "[OK] Produit '" << nom << "' ajouté avec succès." << RESET << "\n";

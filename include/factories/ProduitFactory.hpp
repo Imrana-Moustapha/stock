@@ -14,7 +14,8 @@
 enum class TypeProduit
 {
     STANDARD,
-    PERISSABLE
+    PERISSABLE,
+    ELECTRONIQUE
 };
 
 // Centralise la création polymorphe des produits. Sans cette classe, la logique
@@ -32,7 +33,9 @@ class ProduitFactory
             double prixVente,
             int quantiteStock,
             int seuilAlerte,
-            std::optional<std::chrono::year_month_day> datePeremption = std::nullopt)
+            std::optional<std::chrono::year_month_day> datePeremption = std::nullopt,
+            std::optional<int> dureeGarantieMois = std::nullopt,
+            std::optional<std::string> numeroSerie = std::nullopt)
         {
             // Règles communes à toutes les portes d'entrée (menu, import CSV, chargement
             // de fichier) : elles sont vérifiées ici plutôt que dans chaque appelant.
@@ -55,6 +58,12 @@ class ProduitFactory
                         throw std::invalid_argument("Une date de péremption est requise pour un produit périssable.");
                     return std::make_unique<ProduitPerissable>(reference, nom, categorie, prixAchat, prixVente,
                                                                  quantiteStock, seuilAlerte, *datePeremption);
+
+                case TypeProduit::ELECTRONIQUE:
+                    if (!dureeGarantieMois.has_value() || !numeroSerie.has_value())
+                        throw std::invalid_argument("La durée de garantie et le numéro de série sont requis pour un produit électronique.");
+                    return std::make_unique<ProduitElectronique>(reference, nom, categorie, prixAchat, prixVente,
+                                                                   quantiteStock, seuilAlerte, *dureeGarantieMois, *numeroSerie);
             }
             throw std::invalid_argument("Type de produit inconnu.");
         }
@@ -65,6 +74,7 @@ class ProduitFactory
         {
             if (texte == "STANDARD") return TypeProduit::STANDARD;
             if (texte == "PERISSABLE") return TypeProduit::PERISSABLE;
+            if (texte == "ELECTRONIQUE") return TypeProduit::ELECTRONIQUE;
             throw std::invalid_argument("Type de produit inconnu : " + texte);
         }
 };

@@ -17,6 +17,7 @@
 // champs séparés par ';' (le ';' et le '\' présents dans les données sont échappés). Format :
 //   STANDARD;reference;nom;categorie;prixAchat;prixVente;quantiteStock;seuilAlerte
 //   PERISSABLE;reference;nom;categorie;prixAchat;prixVente;quantiteStock;seuilAlerte;AAAA-MM-JJ
+//   ELECTRONIQUE;reference;nom;categorie;prixAchat;prixVente;quantiteStock;seuilAlerte;dureeGarantieMois;numeroSerie
 class FichierTexteRepository : public IRepository
 {
     private:
@@ -40,8 +41,11 @@ class FichierTexteRepository : public IRepository
             for (const auto& p : produits)
             {
                 const auto* perissable = dynamic_cast<const ProduitPerissable*>(p.get());
+                const auto* electronique = dynamic_cast<const ProduitElectronique*>(p.get());
 
-                fichier << (perissable ? "PERISSABLE" : "STANDARD") << DELIMITEUR
+                std::string type = perissable ? "PERISSABLE" : electronique ? "ELECTRONIQUE" : "STANDARD";
+
+                fichier << type << DELIMITEUR
                         << ech(p->getReference()) << DELIMITEUR
                         << ech(p->getNom()) << DELIMITEUR
                         << ech(p->getCategorie()) << DELIMITEUR
@@ -52,6 +56,9 @@ class FichierTexteRepository : public IRepository
 
                 if (perissable)
                     fichier << DELIMITEUR << DateUtils::formaterIso(perissable->getDatePeremption());
+                else if (electronique)
+                    fichier << DELIMITEUR << electronique->getDureeGarantieMois()
+                            << DELIMITEUR << ech(electronique->getNumeroSerie());
                 fichier << "\n";
             }
         }
@@ -73,13 +80,18 @@ class FichierTexteRepository : public IRepository
                 try {
                     TypeProduit type = ProduitFactory::typeDepuisTexte(champs.at(0));
                     std::optional<std::chrono::year_month_day> date;
+                    std::optional<int> dureeGarantie;
+                    std::optional<std::string> numeroSerie;
 
                     if (type == TypeProduit::STANDARD && champs.size() == 8) {
-                        // pas de date
+                        // pas de champ supplémentaire
                     } else if (type == TypeProduit::PERISSABLE && champs.size() == 9) {
                         date = DateUtils::parserIso(champs[8]);
                         if (!date.has_value())
                             throw std::invalid_argument("date invalide : " + champs[8]);
+                    } else if (type == TypeProduit::ELECTRONIQUE && champs.size() == 10) {
+                        dureeGarantie = std::stoi(champs[8]);
+                        numeroSerie = champs[9];
                     } else {
                         throw std::invalid_argument("nombre de colonnes inattendu");
                     }
@@ -87,7 +99,7 @@ class FichierTexteRepository : public IRepository
                     produits.push_back(ProduitFactory::creerProduit(
                         type, champs[1], champs[2], champs[3],
                         std::stod(champs[4]), std::stod(champs[5]),
-                        std::stoi(champs[6]), std::stoi(champs[7]), date));
+                        std::stoi(champs[6]), std::stoi(champs[7]), date, dureeGarantie, numeroSerie));
 
                 } catch (const std::invalid_argument& e) {
                     throw FormatFichierInvalideException(std::string(e.what()) + " (ligne : " + ligne + ")");
