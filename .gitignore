@@ -2,22 +2,23 @@
 *.o
 *.d
 
-# Exécutable du projet (désormais généré dans bin/)
+# Exécutables du projet (générés dans bin/ ou à la racine par CMake)
 bin/*
 !bin/.gitkeep
 mon_programme
+cpp
 
 # Données de persistance générées au runtime
 data/*
 !data/.gitkeep
 
-# Artefacts de compilation des tests (le code source, lui, reste versionné ;
-# *.o et *.d ci-dessus couvrent déjà les fichiers objets, y compris tests/vendor/)
+# Artefacts de compilation des tests
 tests/tests
 
 # Fichiers temporaires d'éditeurs
 *.swp
 *~
 
-# Dossiers de build éventuels
+# Dossier de build (CMake)
 build/
+!build/.gitkeep

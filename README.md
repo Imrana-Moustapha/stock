@@ -12,78 +12,102 @@ Ce projet sert de support pour la mise en pratique d'une architecture orientée 
 - **Commandes et fournisseurs** : suivi des fournisseurs, propositions de réapprovisionnement, statut des commandes
 - **Statistiques** : valeur totale du stock, produits les plus mouvementés, détection des produits dormants
 - **Administration** : import/export de données, configuration des seuils d'alerte, gestion des utilisateurs et des rôles
+- **Configuration dynamique** : chargement des variables d'environnement depuis un fichier `.env` au démarrage
+
+## Comment configurer le fichier .env
+
+Pour que l'application puisse charger ses configurations au démarrage, vous devez créer un fichier nommé `.env` directement à la racine de votre projet.
+
+### 1. Créer le fichier
+À la racine du projet (`~/Bureau/cpp/`), créez un fichier `.env` :
+```bash
+touch .env
+
+```
+
+### 2. Ajouter les variables requises
+
+Ouvrez le fichier `.env` avec votre éditeur préféré et ajoutez les lignes suivantes en adaptant les valeurs selon vos besoins :
+
+```env
+DATABASE_URL=postgres://user:password@localhost:5432/mydb
+PORT=8080
+API_KEY=mon_secret_12345
+
+```
+
+### 3. Particularité si vous utilisez CMake
+
+Si vous compilez et lancez l'application via CMake, assurez-vous que le fichier `.env` est accessible à l'exécutable (par exemple, en le copiant dans le dossier de travail ou de build) :
+
+```bash
+cp ../.env .
+
+```
+
+*(Le fichier `.env` ne doit jamais être versionné dans Git, il est déjà exclu par le `.gitignore`).*
 
 ## Structure du projet
 
 ```
 .
 ├── bin/                       # Exécutable généré (non versionné)
-├── data/                      # Fichier de persistance stock.txt (non versionné)
-├── include/
-│   ├── header.hpp             # Déclarations communes (menus, utilitaires, couleurs)
-│   ├── models/                # Classes du modèle de domaine
-│   │   ├── Produit.hpp
-│   │   ├── Fournisseur.hpp
-│   │   ├── Commande.hpp
-│   │   ├── MouvementStock.hpp
-│   │   └── Utilisateur.hpp
-│   ├── exceptions/
-│   │   └── Exceptions.hpp     # Hiérarchie d'exceptions métier personnalisées
-│   ├── observers/
-│   │   └── IObservateurStock.hpp   # Interface du pattern Observer
-│   ├── services/
-│   │   └── GestionnaireStock.hpp   # Couche logique métier
-│   └── repositories/
-│       ├── IRepository.hpp
-│       └── FichierTexteRepository.hpp
-├── src/
-│   ├── main.cpp
-│   ├── menu.cpp
-│   ├── sub-menu/               # Sous-menus de l'application
-│   │   ├── produits.cpp
-│   │   ├── mouvements.cpp
-│   │   ├── recherche.cpp
-│   │   ├── commandes.cpp
-│   │   ├── statistiques.cpp
-│   │   └── administration.cpp
-│   └── utils/
-│       └── utils.cpp
+├── build/                     # Dossier de build CMake (non versionné)
+├── data/                      # Fichiers de persistance (stock.txt, mouvements.txt, alertes.log)
+├── include/                   # Fichiers d'en-tête (.hpp)
+├── src/                       # Fichiers sources (.cpp)
+├── .env                       # Fichier de configuration des variables d'environnement
 ├── .gitignore
 ├── .dockerignore
 ├── Dockerfile
 ├── docker-compose.yml
+├── CMakeLists.txt
 ├── Makefile
 └── README.md
+
 ```
 
 ## Prérequis
 
-- Un compilateur supportant C++23 (GCC 13 ou plus récent recommandé)
-- `make`
+* Un compilateur supportant C++23 (GCC 13 ou plus récent recommandé)
+* `make` et/ou **CMake** (version 3.14 ou supérieure)
 
 ## Compilation et exécution
 
+### Option 1 : Avec Make (Méthode rapide)
+
 ```bash
 make
+
 ```
 
-Compile le projet (si nécessaire) dans `bin/mon_programme`, puis lance l'exécutable automatiquement.
+Compile le projet et lance l'exécutable automatiquement (`bin/mon_programme`).
 
 Cibles disponibles :
 
 | Commande | Effet |
-|---|---|
+| --- | --- |
 | `make` ou `make all` | Compile si besoin, puis lance le programme |
 | `make build` | Compile seulement, sans lancer le programme |
-| `make run` | Identique à `make` : compile si besoin puis lance |
-| `make clean` | Supprime les fichiers objets, dépendances et l'exécutable |
+| `make clean` | Supprime les fichiers objets, dépendances et exécutables |
 
-Make ne recompile que ce qui a changé : un `.cpp` modifié entraîne la recompilation de son objet, et grâce à `-MMD -MP`, un `.hpp` modifié entraîne la recompilation de tous les fichiers qui l'incluent.
-
-Pour lancer l'exécutable manuellement sans passer par `make run` :
+### Option 2 : Avec CMake (Méthode recommandée pour les IDE et configurations modernes)
 
 ```bash
-./bin/mon_programme
+mkdir -p build
+cd build
+cmake ..
+cmake --build .
+
+```
+
+L'exécutable compilé est automatiquement redirigé vers le dossier `bin/` à la racine. Pour le lancer :
+
+```bash
+# Depuis le dossier build (en s'assurant d'avoir le .env à portée)
+cp ../.env .
+../bin/cpp
+
 ```
 
 ## Architecture logicielle
@@ -91,24 +115,25 @@ Pour lancer l'exécutable manuellement sans passer par `make run` :
 Le projet est organisé en couches aux responsabilités distinctes :
 
 | Couche | Rôle |
-|---|---|
+| --- | --- |
 | Modèle (`include/models/`) | Classes de données métier (`Produit`, `Commande`, `Fournisseur`, `MouvementStock`, `Utilisateur`) |
-| Logique / Service | Règles métier : seuils, calculs de valeur, validations (à venir) |
-| Persistance | Interface abstraite pour la sauvegarde/chargement des données (à venir) |
-| Interface (CLI) | Menu console (`menu.cpp`, `src/sub-menu/`) |
+| Logique / Service | Règles métier : seuils, calculs de valeur, validations |
+| Persistance | Interface abstraite pour la sauvegarde/chargement des données |
+| Interface (CLI) | Menu console (`menu.cpp`, `src/menus/`) |
 
 ### Design patterns
 
-- **Factory** — création polymorphe des produits selon leur type
-- **Observer** — notification automatique lors du franchissement d'un seuil de stock
-- **Strategy** — politiques de tarification interchangeables
+* **Factory** — création polymorphe des produits selon leur type
+* **Observer** — notification automatique lors du franchissement d'un seuil de stock
+* **Strategy** — politiques de tarification interchangeables
 
 ## Dépôt
 
 ```bash
-git clone https://github.com/Imrana-Moustapha/stock.git
+git clone [https://github.com/Imrana-Moustapha/stock.git](https://github.com/Imrana-Moustapha/stock.git)
 cd stock
 git checkout develop
+
 ```
 
 La branche par défaut du dépôt est **`develop`** : c'est elle que vous récupérez automatiquement après un `git clone`, et c'est sur elle que doit partir tout nouveau travail.
@@ -118,89 +143,75 @@ La branche par défaut du dépôt est **`develop`** : c'est elle que vous récup
 Le projet suit un modèle à deux branches principales :
 
 | Branche | Rôle |
-|---|---|
+| --- | --- |
 | `main` | Code stable, prêt à être livré. On n'y pousse jamais directement. |
 | `develop` | Branche d'intégration, par défaut. Toutes les fonctionnalités y sont fusionnées avant de partir vers `main`. |
 
 ### Ajouter une fonctionnalité ou corriger un bug
 
 1. Partir toujours de `develop` à jour :
-   ```bash
-   git checkout develop
-   git pull origin develop
-   ```
+```bash
+git checkout develop
+git pull origin develop
+
+```
+
+
 2. Créer une branche dédiée, nommée selon ce qu'elle contient :
-   ```bash
-   git checkout -b feature/nom-de-la-fonctionnalite
-   # ou : git checkout -b fix/nom-du-bug
-   ```
+```bash
+git checkout -b feature/nom-de-la-fonctionnalite
+# ou : git checkout -b fix/nom-du-bug
+
+```
+
+
 3. Committer par petites étapes, avec des messages clairs :
-   ```bash
-   git add .
-   git commit -m "Ajoute la validation de saisie du menu produits"
-   ```
-4. Pousser la branche et ouvrir une Pull Request vers `develop` (jamais directement vers `main`) :
-   ```bash
-   git push -u origin feature/nom-de-la-fonctionnalite
-   ```
-5. Une fois la Pull Request relue et validée, elle est fusionnée dans `develop`. `main` n'est mis à jour que lors d'une livraison stable, via une Pull Request `develop` → `main`.
+```bash
+git add .
+git commit -m "Ajoute la lecture du fichier .env"
+
+```
+
+
+4. Pousser la branche et ouvrir une Pull Request vers `develop` :
+```bash
+git push -u origin feature/nom-de-la-fonctionnalite
+
+```
+
+
 
 ### Conventions de nommage des branches
 
-- `feature/xxx` — nouvelle fonctionnalité
-- `fix/xxx` — correction de bug
-- `refactor/xxx` — refactorisation sans changement de comportement
-- `docs/xxx` — documentation uniquement
-
-### Avant de committer
-
-- Vérifier que le projet compile sans avertissement : `make clean && make build`
-- Ne jamais committer les fichiers générés (`*.o`, `*.d`, le dossier `bin/`) — déjà exclus par `.gitignore`
-
-
+* `feature/xxx` — nouvelle fonctionnalité
+* `fix/xxx` — correction de bug
+* `refactor/xxx` — refactorisation sans changement de comportement
+* `docs/xxx` — documentation uniquement
 
 ## Utilisation avec Docker
 
 L'application peut être compilée et exécutée dans un conteneur, sans installer GCC ni `make` sur la machine hôte.
 
-### Construire l'image
+### Construire et lancer l'image
 
 ```bash
 docker build -t gestion-stock .
-```
-
-### Lancer le conteneur
-
-L'application est interactive (menus lus au clavier), donc `-it` est indispensable. Le montage du volume `data/` garantit que `stock.txt` persiste au-delà de la durée de vie du conteneur :
-
-```bash
 docker run -it --rm -v $(pwd)/data:/app/data gestion-stock
+
 ```
 
 ### Avec Docker Compose
 
-Plus simple à retenir au quotidien :
-
 ```bash
 docker compose run --rm stock
+
 ```
-
-### Notes
-
-- L'image finale (étape d'exécution) ne contient ni GCC ni les fichiers sources : seul l'exécutable compilé et `libstdc++6` sont présents, pour rester légère.
-- Si tu modifies le code, reconstruis l'image avant de relancer : `docker build -t gestion-stock .` (ou `docker compose build`).
-- Sans montage du volume `data/`, le stock repart vide à chaque nouveau conteneur — c'est le comportement attendu d'un conteneur, pas un bug.
 
 ## Statut du projet
 
 Les six modules de l'application (produits, mouvements de stock, recherche, commandes/fournisseurs, statistiques, administration) sont fonctionnels.
 
 **Persistance** : les produits (`data/stock.txt`) et le journal des mouvements (`data/mouvements.txt`) sont sauvegardés automatiquement après chaque opération qui les modifie, et rechargés au démarrage. Les alertes de seuil critique sont écrites dans `data/alertes.log`.
-
-**Limitations connues** :
-- Les fournisseurs, les commandes et les utilisateurs ne sont pas encore persistés : ils sont perdus à la fermeture du programme.
-- Pas encore de tests unitaires automatisés.
-- Seuls deux types de produits existent (`STANDARD` et `PERISSABLE`).
 
 ## Auteur
 
