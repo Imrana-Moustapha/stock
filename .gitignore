@@ -20,5 +20,5 @@ tests/tests
 *~
 
 # Dossier de build (CMake)
-build/
+build/*
 !build/.gitkeep
