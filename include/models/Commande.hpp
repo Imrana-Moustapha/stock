@@ -4,6 +4,7 @@
 #include <vector>
 #include <chrono>
 #include <utility>
+#include <stdexcept>
 
 enum class StatutCommande
 {
@@ -11,6 +12,25 @@ enum class StatutCommande
     LIVREE,
     ANNULEE
 };
+
+// Libellé texte d'un statut (affichage, exports, fichiers de données).
+inline const char* libelle(StatutCommande statut)
+{
+    switch (statut) {
+        case StatutCommande::EN_COURS: return "EN_COURS";
+        case StatutCommande::LIVREE:   return "LIVREE";
+        case StatutCommande::ANNULEE:  return "ANNULEE";
+    }
+    return "?";
+}
+
+inline StatutCommande statutDepuisTexte(const std::string& texte)
+{
+    if (texte == "EN_COURS") return StatutCommande::EN_COURS;
+    if (texte == "LIVREE")   return StatutCommande::LIVREE;
+    if (texte == "ANNULEE")  return StatutCommande::ANNULEE;
+    throw std::invalid_argument("Statut de commande inconnu : " + texte);
+}
 
 // Une commande fournisseur doit savoir CE QUI a été commandé, pas seulement son montant :
 // sans ça, impossible de mettre à jour le stock automatiquement à la réception.

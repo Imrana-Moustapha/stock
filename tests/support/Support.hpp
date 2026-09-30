@@ -17,6 +17,9 @@
 #include "repositories/IMouvementRepository.hpp"
 #include "repositories/IRepository.hpp"
 #include "services/GestionnaireStock.hpp"
+#include "services/GestionnaireCommandes.hpp"
+#include "repositories/IFournisseurRepository.hpp"
+#include "repositories/ICommandeRepository.hpp"
 
 namespace Support
 {
@@ -103,6 +106,63 @@ namespace Support
                 dp = p.get();
                 dm = m.get();
                 return GestionnaireStock(std::move(p), std::move(m));
+            }
+    };
+
+
+    // ---- Dépôts en mémoire pour GestionnaireCommandes -------------------------------
+
+    class DepotFournisseursMemoire : public IFournisseurRepository
+    {
+        public:
+            std::vector<Fournisseur> disque;
+            int nbSauvegardes = 0;
+
+            void sauvegarder(const std::vector<Fournisseur>& fournisseurs) override
+            {
+                disque = fournisseurs;
+                ++nbSauvegardes;
+            }
+
+            std::vector<Fournisseur> charger() override { return disque; }
+    };
+
+    class DepotCommandesMemoire : public ICommandeRepository
+    {
+        public:
+            std::vector<Commande> disque;
+            int nbSauvegardes = 0;
+
+            void sauvegarder(const std::vector<Commande>& commandes) override
+            {
+                disque = commandes;
+                ++nbSauvegardes;
+            }
+
+            std::vector<Commande> charger() override { return disque; }
+    };
+
+    // Un GestionnaireCommandes branché sur des dépôts en mémoire, sur le même principe
+    // que BancDeTest pour GestionnaireStock.
+    struct BancDeTestCommandes
+    {
+        DepotFournisseursMemoire* depotFournisseurs = nullptr;
+        DepotCommandesMemoire* depotCommandes = nullptr;
+        GestionnaireCommandes gestionnaire;
+
+        BancDeTestCommandes() : gestionnaire(creer(depotFournisseurs, depotCommandes)) {}
+
+        int sauvegardesFournisseurs() const { return depotFournisseurs->nbSauvegardes; }
+        int sauvegardesCommandes() const { return depotCommandes->nbSauvegardes; }
+
+        private:
+            static GestionnaireCommandes creer(DepotFournisseursMemoire*& df, DepotCommandesMemoire*& dc)
+            {
+                auto f = std::make_unique<DepotFournisseursMemoire>();
+                auto c = std::make_unique<DepotCommandesMemoire>();
+                df = f.get();
+                dc = c.get();
+                return GestionnaireCommandes(std::move(f), std::move(c));
             }
     };
 
