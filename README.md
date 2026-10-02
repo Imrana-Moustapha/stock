@@ -12,40 +12,33 @@ Ce projet sert de support pour la mise en pratique d'une architecture orientée 
 - **Commandes et fournisseurs** : suivi des fournisseurs, propositions de réapprovisionnement, statut des commandes
 - **Statistiques** : valeur totale du stock, produits les plus mouvementés, détection des produits dormants
 - **Administration** : import/export de données, configuration des seuils d'alerte, gestion des utilisateurs et des rôles
-- **Configuration dynamique** : chargement des variables d'environnement depuis un fichier `.env` au démarrage
+- **Authentification** : connexion par identifiant/mot de passe, mots de passe hachés (sel + SHA-256), accès à l'administration réservé aux comptes `ADMIN`
 
-## Comment configurer le fichier .env
+## Authentification
 
-Pour que l'application puisse charger ses configurations au démarrage, vous devez créer un fichier nommé `.env` directement à la racine de votre projet.
+Au démarrage, l'application demande un identifiant et un mot de passe. Les comptes sont persistés dans `data/utilisateurs.txt`, avec le mot de passe **haché** (sel aléatoire + SHA-256) — jamais stocké en clair, nulle part.
 
-### 1. Créer le fichier
-À la racine du projet (`~/Bureau/cpp/`), créez un fichier `.env` :
-```bash
-touch .env
+Trois rôles existent : `ADMIN`, `GESTIONNAIRE`, `MAGASINIER`. Seul un compte `ADMIN` accède au menu Administration.
 
-```
+### Premier démarrage : créer le compte admin
 
-### 2. Ajouter les variables requises
+Tant qu'aucun utilisateur n'existe, l'application propose de créer le premier compte `ADMIN`, de deux façons :
 
-Ouvrez le fichier `.env` avec votre éditeur préféré et ajoutez les lignes suivantes en adaptant les valeurs selon vos besoins :
-
-```env
-DATABASE_URL=postgres://user:password@localhost:5432/mydb
-PORT=8080
-API_KEY=mon_secret_12345
-
-```
-
-### 3. Particularité si vous utilisez CMake
-
-Si vous compilez et lancez l'application via CMake, assurez-vous que le fichier `.env` est accessible à l'exécutable (par exemple, en le copiant dans le dossier de travail ou de build) :
+- **Interactive** (par défaut) : l'application demande un identifiant et un mot de passe au premier lancement.
+- **Automatique via `.env`** (pratique pour Docker ou un déploiement scripté) : définir `ADMIN_BOOTSTRAP_USERNAME` et `ADMIN_BOOTSTRAP_PASSWORD` avant le premier lancement.
 
 ```bash
-cp ../.env .
-
+cp .env.example .env
+# puis éditer .env et changer ADMIN_BOOTSTRAP_PASSWORD
 ```
 
-*(Le fichier `.env` ne doit jamais être versionné dans Git, il est déjà exclu par le `.gitignore`).*
+Ces deux variables ne servent qu'à l'amorçage : une fois le premier compte créé, elles n'ont plus aucun effet, et le mot de passe fourni n'est jamais relu en clair par la suite. Les comptes suivants se créent depuis le menu Administration (accessible uniquement à un `ADMIN` déjà connecté).
+
+**`.env` n'est jamais versionné** (couvert par `.gitignore`) — seul `.env.example`, sans valeurs réelles, est committé pour documenter les variables attendues.
+
+### Autres variables
+
+`DATA_PATH` (optionnelle) change le dossier où sont stockés les fichiers de données ; `data/` par défaut.
 
 ## Structure du projet
 
@@ -53,10 +46,14 @@ cp ../.env .
 .
 ├── bin/                       # Exécutable généré (non versionné)
 ├── build/                     # Dossier de build CMake (non versionné)
-├── data/                      # Fichiers de persistance (stock.txt, mouvements.txt, alertes.log)
+├── data/                      # Fichiers de persistance : stock.txt, mouvements.txt,
+│                               #   fournisseurs.txt, commandes.txt, commande_lignes.txt,
+│                               #   utilisateurs.txt, alertes.log (aucun non versionné)
 ├── include/                   # Fichiers d'en-tête (.hpp)
 ├── src/                       # Fichiers sources (.cpp)
-├── .env                       # Fichier de configuration des variables d'environnement
+├── tests/                     # Tests unitaires (Catch2)
+├── .env                       # Configuration locale (non versionné)
+├── .env.example                # Modèle documenté, à copier en .env
 ├── .gitignore
 ├── .dockerignore
 ├── Dockerfile
@@ -101,12 +98,11 @@ cmake --build .
 
 ```
 
-L'exécutable compilé est automatiquement redirigé vers le dossier `bin/` à la racine. Pour le lancer :
+L'exécutable compilé est automatiquement redirigé vers le dossier `bin/` à la racine, sous le même nom qu'avec Make (`bin/mon_programme`). Comme il cherche `.env` et `data/` par rapport à son répertoire de travail, lance-le depuis la racine du projet plutôt que depuis `build/` :
 
 ```bash
-# Depuis le dossier build (en s'assurant d'avoir le .env à portée)
-cp ../.env .
-../bin/cpp
+cd ..            # retour à la racine du projet, si tu étais dans build/
+./bin/mon_programme
 
 ```
 
@@ -130,7 +126,7 @@ Le projet est organisé en couches aux responsabilités distinctes :
 ## Dépôt
 
 ```bash
-git clone [https://github.com/Imrana-Moustapha/stock.git](https://github.com/Imrana-Moustapha/stock.git)
+git clone https://github.com/Imrana-Moustapha/stock.git
 cd stock
 git checkout develop
 
@@ -207,11 +203,25 @@ docker compose run --rm stock
 
 ```
 
+### Premier démarrage : créer le compte admin
+
+Le conteneur est lancé avec `-it`, donc la création interactive du premier compte admin (décrite dans [Authentification](#authentification)) fonctionne normalement. Pour un démarrage sans interaction (script, CI), passe les identifiants d'amorçage via `-e` plutôt que par un fichier `.env` dans l'image — `.env` n'est volontairement pas copié dans l'image, pour éviter d'y figer un secret :
+
+```bash
+docker run -it --rm -v $(pwd)/data:/app/data \
+  -e ADMIN_BOOTSTRAP_USERNAME=admin \
+  -e ADMIN_BOOTSTRAP_PASSWORD=change-moi \
+  gestion-stock
+
+```
+
 ## Statut du projet
 
-Les six modules de l'application (produits, mouvements de stock, recherche, commandes/fournisseurs, statistiques, administration) sont fonctionnels.
+Les six modules de l'application (produits, mouvements de stock, recherche, commandes/fournisseurs, statistiques, administration) sont fonctionnels, avec authentification et contrôle d'accès par rôle.
 
-**Persistance** : les produits (`data/stock.txt`) et le journal des mouvements (`data/mouvements.txt`) sont sauvegardés automatiquement après chaque opération qui les modifie, et rechargés au démarrage. Les alertes de seuil critique sont écrites dans `data/alertes.log`.
+**Persistance** : produits, mouvements, fournisseurs, commandes et comptes utilisateurs sont tous sauvegardés automatiquement après chaque opération qui les modifie, et rechargés au démarrage. Les alertes de seuil critique sont écrites dans `data/alertes.log`.
+
+**Tests** : suite de tests unitaires (Catch2) couvrant le modèle, les services, les repositories et le hachage de mots de passe. Voir `tests/`.
 
 ## Auteur
 

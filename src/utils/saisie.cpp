@@ -5,6 +5,13 @@
 #include <charconv>
 #include <optional>
 
+#if defined(_WIN32)
+    #include <conio.h>
+#else
+    #include <termios.h>
+    #include <unistd.h>
+#endif
+
 using namespace Couleur;
 
 namespace {
@@ -134,6 +141,50 @@ bool lireChoix(int& choix)
     choix = *valeur;
     std::cout << RESET;
     return true;
+}
+
+std::string lireMotDePasse(const std::string& invite)
+{
+    std::cout << invite;
+
+#if defined(_WIN32)
+    if (!_isatty(_fileno(stdin))) {
+        return lireLigne();   // flux redirigé (tests) : rien à masquer
+    }
+    std::string mdp;
+    int c;
+    while ((c = _getch()) != '\r' && c != '\n') {
+        if (c == '\b') {
+            if (!mdp.empty()) { mdp.pop_back(); std::cout << "\b \b"; }
+        } else {
+            mdp += static_cast<char>(c);
+            std::cout << '*';
+        }
+    }
+    std::cout << "\n";
+    return mdp;
+#else
+    if (!isatty(fileno(stdin))) {
+        return lireLigne();   // flux redirigé (tests, Docker non interactif) : rien à masquer
+    }
+
+    termios ancien{};
+    tcgetattr(STDIN_FILENO, &ancien);
+    termios silencieux = ancien;
+    silencieux.c_lflag &= ~ECHO;   // désactive l'écho, garde le canonique (backspace fonctionne)
+    tcsetattr(STDIN_FILENO, TCSANOW, &silencieux);
+
+    std::string mdp;
+    try {
+        mdp = lireLigne();
+    } catch (...) {
+        tcsetattr(STDIN_FILENO, TCSANOW, &ancien);
+        throw;
+    }
+    tcsetattr(STDIN_FILENO, TCSANOW, &ancien);
+    std::cout << "\n";
+    return mdp;
+#endif
 }
 
 void attendreEntree()

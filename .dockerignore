@@ -2,6 +2,7 @@ bin/
 data/
 *.o
 *.d
+.env
 
 .git/
 .gitignore

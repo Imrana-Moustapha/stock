@@ -1,10 +1,13 @@
 #include "menus/Menus.hpp"
 #include "ui/Console.hpp"
 #include "ui/Saisie.hpp"
+#include "models/Utilisateur.hpp"
+#include "services/GestionnaireUtilisateurs.hpp"
 
 using namespace Couleur;
 
-void menu_principal(GestionnaireStock& gestionnaire, GestionnaireCommandes& gestionnaireCommandes) 
+void menu_principal(GestionnaireStock& gestionnaire, GestionnaireCommandes& gestionnaireCommandes,
+                     GestionnaireUtilisateurs& gestionnaireUtilisateurs, const Utilisateur& utilisateurConnecte)
 {
     int choixPrincipal = 0;
 
@@ -14,6 +17,9 @@ void menu_principal(GestionnaireStock& gestionnaire, GestionnaireCommandes& gest
         std::cout << "\n\n";
         std::cout << JAUNE << "\t\t=======================================================\n" << RESET;
         std::cout << CYAN  << "\t\t||           " << GRAS << "SYSTEME DE GESTION DE STOCK v1.0" << RESET << CYAN << "        ||\n" << RESET;
+        std::cout << JAUNE << "\t\t=======================================================\n" << RESET;
+        std::cout << BLANC << "\t\tConnecté : " << utilisateurConnecte.getUsername()
+                   << " (" << libelle(utilisateurConnecte.getRole()) << ")" << RESET << "\n";
         std::cout << JAUNE << "\t\t=======================================================\n" << RESET;
         std::cout << BLANC << "\t\t||  1. Gestion des Produits                          ||\n";
         std::cout << "\t\t||  2. Mouvements de Stock (Entrees/Sorties)         ||\n";
@@ -44,7 +50,14 @@ void menu_principal(GestionnaireStock& gestionnaire, GestionnaireCommandes& gest
                 sous_menu_statistiques(gestionnaire);
                 break;
             case 6:
-                sous_menu_administration(gestionnaire);
+                // Seul un compte ADMIN accède à l'administration : le menu l'annonce
+                // déjà avec "[Admin]", le contrôle d'accès rend cette annonce réelle.
+                if (utilisateurConnecte.getRole() == Role::ADMIN) {
+                    sous_menu_administration(gestionnaire, gestionnaireUtilisateurs, utilisateurConnecte);
+                } else {
+                    std::cout << "\n\t\t" << ROUGE << "[!] Accès réservé aux administrateurs." << RESET << "\n";
+                    attendreEntree();
+                }
                 break;
             case 0:
                 clear();

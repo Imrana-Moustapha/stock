@@ -33,5 +33,10 @@ std::chrono::year_month_day lireDate(const std::string& libelle);
 // Choix de menu. Retourne false (après avoir signalé l'erreur) si la saisie n'est pas un entier.
 bool lireChoix(int& choix);
 
+// Comme lireTexte, mais sans afficher les caractères tapés (authentification).
+// Sur un flux qui n'est pas un vrai terminal (tests, redirection), se rabat sur
+// une saisie normale : rien à masquer puisqu'il n'y a pas d'écran à protéger.
+std::string lireMotDePasse(const std::string& invite);
+
 // « Appuyez sur Entrée pour continuer... » (ne s'appelle pas pause : ce nom est déjà pris par POSIX)
 void attendreEntree();

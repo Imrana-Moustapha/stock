@@ -3,6 +3,7 @@
 #include "menus/Menus.hpp"
 #include "services/GestionnaireStock.hpp"
 #include "factories/ProduitFactory.hpp"
+#include "services/GestionnaireUtilisateurs.hpp"
 #include "models/Utilisateur.hpp"
 #include "utils/Csv.hpp"
 #include "utils/DateUtils.hpp"
@@ -193,20 +194,14 @@ void configurerSeuils(GestionnaireStock& gestionnaire)
     attendreEntree();
 }
 
-// Gestion des utilisateurs : liste maintenue en mémoire pour la durée de la session
-// uniquement (aucune persistance sur disque pour l'instant, contrairement aux produits
-// qui passent par IRepository). C'est une limitation connue, à combler par un
-// UtilisateurRepository dédié le jour où l'authentification sera implémentée.
-void gererUtilisateurs()
+// Gestion des utilisateurs : persistée via GestionnaireUtilisateurs (data/utilisateurs.txt),
+// avec mots de passe hachés (sel + SHA-256, voir utils/Hachage.hpp) — jamais stockés en clair.
+void gererUtilisateurs(GestionnaireUtilisateurs& gestionnaireUtilisateurs, const Utilisateur& utilisateurConnecte)
 {
-    static std::vector<Utilisateur> utilisateurs;
-    static int prochainId = 1;
-
     int choix = 0;
     do {
         clear();
-        std::cout << "\n\n" << CYAN << GRAS << "\t\tGestion des utilisateurs (session courante)\n" << RESET << "\n";
-        std::cout << "\t\t" << JAUNE << "Note : liste non persistée, réinitialisée à chaque redémarrage." << RESET << "\n\n";
+        std::cout << "\n\n" << CYAN << GRAS << "\t\tGestion des utilisateurs\n" << RESET << "\n";
         std::cout << "\t\t1. Lister les utilisateurs\n";
         std::cout << "\t\t2. Ajouter un utilisateur\n";
         std::cout << "\t\t0. Retour\n";
@@ -214,29 +209,30 @@ void gererUtilisateurs()
 
         if (choix == 1) {
             clear();
+            const auto& utilisateurs = gestionnaireUtilisateurs.getUtilisateurs();
             std::cout << "\n\n" << CYAN << GRAS << "\t\tUtilisateurs (" << utilisateurs.size() << ")\n" << RESET << "\n";
-            if (utilisateurs.empty()) {
-                std::cout << "\t\t" << JAUNE << "Aucun utilisateur créé pour l'instant." << RESET << "\n";
-            } else {
-                for (const auto& u : utilisateurs) {
-                    std::string role = (u.getRole() == Role::ADMIN) ? "ADMIN"
-                                      : (u.getRole() == Role::GESTIONNAIRE) ? "GESTIONNAIRE" : "MAGASINIER";
-                    std::cout << "\t\t- " << u.getUsername() << " (" << role << ")\n";
-                }
+            for (const auto& u : utilisateurs) {
+                std::cout << "\t\t- " << u.getUsername() << " (" << libelle(u.getRole()) << ")";
+                if (u.getUsername() == utilisateurConnecte.getUsername())
+                    std::cout << "  " << JAUNE << "<- vous" << RESET;
+                std::cout << "\n";
             }
             attendreEntree();
         } else if (choix == 2) {
             clear();
             std::cout << "\n\n" << CYAN << GRAS << "\t\tAjouter un utilisateur\n" << RESET << "\n";
             std::string nom = lireTexte("\t\tNom d'utilisateur : ");
+            std::string mdp = lireMotDePasse("\t\tMot de passe (4 caractères minimum) : ");
             std::cout << "\t\tRôle : 1. ADMIN  2. GESTIONNAIRE  3. MAGASINIER\n";
             int r = lireEntier("\t\tVotre choix : ");
             Role role = (r == 1) ? Role::ADMIN : (r == 2) ? Role::GESTIONNAIRE : Role::MAGASINIER;
 
-            // Mot de passe non géré ici (pas d'authentification implémentée) :
-            // un hash vide est un espace réservé, jamais utilisable en l'état.
-            utilisateurs.emplace_back(prochainId++, nom, "", role);
-            std::cout << "\n\t\t" << VERT << "[OK] Utilisateur ajouté." << RESET << "\n";
+            try {
+                gestionnaireUtilisateurs.ajouterUtilisateur(nom, mdp, role);
+                std::cout << "\n\t\t" << VERT << "[OK] Utilisateur ajouté." << RESET << "\n";
+            } catch (const std::exception& e) {
+                std::cout << "\n\t\t" << ROUGE << "[!] " << e.what() << RESET << "\n";
+            }
             attendreEntree();
         } else if (choix != 0) {
             std::cout << "\n\t\t" << ROUGE << "[!] Choix invalide." << RESET << "\n";
@@ -247,7 +243,8 @@ void gererUtilisateurs()
 
 } // namespace anonyme
 
-void sous_menu_administration(GestionnaireStock& gestionnaire) {
+void sous_menu_administration(GestionnaireStock& gestionnaire, GestionnaireUtilisateurs& gestionnaireUtilisateurs,
+                               const Utilisateur& utilisateurConnecte) {
     int choixSousMenu = 0;
     do {
         clear();
@@ -270,7 +267,7 @@ void sous_menu_administration(GestionnaireStock& gestionnaire) {
                 case 1: importerProduitsCsv(gestionnaire); break;
                 case 2: menuExport(gestionnaire); break;
                 case 3: configurerSeuils(gestionnaire); break;
-                case 4: gererUtilisateurs(); break;
+                case 4: gererUtilisateurs(gestionnaireUtilisateurs, utilisateurConnecte); break;
                 case 0: break;
                 default: 
                     std::cout << "\n\t\t" << ROUGE << "[!] Choix invalide." << RESET << "\n";

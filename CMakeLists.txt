@@ -12,5 +12,6 @@ include_directories(include)
 # Récupérer automatiquement tous les fichiers .cpp dans src/ (et ses sous-dossiers)
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 
-# Définir l'exécutable avec tous les fichiers source trouvés
-add_executable(cpp ${SOURCES})
+# Nom de l'exécutable aligné sur celui produit par le Makefile (bin/mon_programme) :
+# le même nom, quel que soit l'outil de build utilisé pour compiler.
+add_executable(mon_programme ${SOURCES})
